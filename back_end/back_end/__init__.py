@@ -1,3 +1,2 @@
-"""
-Package for back_end.
-"""
+import pymysql
+pymysql.install_as_MySQLdb()
