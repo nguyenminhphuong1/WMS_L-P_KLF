@@ -9,8 +9,20 @@ class CuaHangSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at']
     
     def validate(self, attrs):
-        if attrs['so_dien_thoai'] and not attrs['so_dien_thoai'].isdigit():
-            raise serializers.ValidationError("Số điện thoại chỉ được chứa chữ số.")
+        so_dien_thoai = attrs.get('so_dien_thoai')
+        if so_dien_thoai:
+            if not so_dien_thoai.isdigit():
+                raise serializers.ValidationError("Số điện thoại chỉ được chứa chữ số.")
+            if len(so_dien_thoai) != 10:
+                raise serializers.ValidationError("Số điện thoại phải đúng 10 chữ số.")
+
+        ten_cua_hang = attrs.get('ten_cua_hang')
+        if ten_cua_hang:
+            if attrs['ten_cua_hang'] == '':
+                raise serializers.ValidationError("Tên cửa hàng không được để trống.")
+            if len(ten_cua_hang) >= 100:
+                raise serializers.ValidationError("Không được vượt quá 100 kí tự.")
+            
         return attrs
 
 class CuaHangQuanLySerializer(serializers.ModelSerializer):

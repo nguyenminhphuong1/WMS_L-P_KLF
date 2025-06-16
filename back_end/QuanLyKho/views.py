@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from rest_framework import viewsets, status
+from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from datetime import date, timedelta
@@ -11,12 +12,21 @@ from NhapHang.models import Pallets
 # Create your views here.
 class KhuVucViewSet(viewsets.ModelViewSet):
     queryset = KhuVuc.objects.all()
-    serializer_class = KhuVucSerializer
-        
+    serializer_class = KhuVucSerializer     
 
 class ViTriKhoViewSet(viewsets.ModelViewSet):
     queryset = ViTriKho.objects.all()
     serializer_class = ViTriKhoSerializer
+
+    @action(detail=False, methods=['get'], url_path='xem_map')
+    def xem_map(self, request):
+        try:
+            ten_khu_vuc = KhuVuc.objects.values_list('ten_khu_vuc', flat=True).distinct()
+            return Response({
+                "ten_khu_vuc": list(ten_khu_vuc)
+            }).status(status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['get'], url_path='dashboard_quan_ly_kho')
     def dashboard_quan_ly_kho(self, request):
@@ -25,8 +35,16 @@ class ViTriKhoViewSet(viewsets.ModelViewSet):
             tong_pallets = Pallets.objects.count()
             trong = ViTriKho.objects.filter(trang_thai='Trống').count()
             day = ViTriKho.objects.filter(trang_thai='Có hàng').count()
-            ty_le_su_dung = f'({(day/tong_vi_tri)*100:.2f}%)'
-            hieu_suat = f'{(day/(tong_vi_tri-trong))*100:.2f}%'
+            if tong_vi_tri > 0:
+                ty_le_su_dung = f'{(day / tong_vi_tri) * 100:.2f}%'
+            else:
+                ty_le_su_dung = "0.00%"
+
+            if (tong_vi_tri - trong) > 0:
+                hieu_suat = f'{(day / (tong_vi_tri - trong)) * 100:.2f}%'
+            else:
+                hieu_suat = "0.00%"
+
             can_bao_tri = ViTriKho.objects.filter(trang_thai='Bảo trì').count()
 
             today = date.today()
@@ -78,7 +96,7 @@ class ViTriKhoViewSet(viewsets.ModelViewSet):
                     "vi_tri": list(data_vi_tri)
                 })
 
-            return Response({"dashboard_quan_ly_kho": data})
+            return Response({"dashboard": data})
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
@@ -210,8 +228,6 @@ class TinhTrangHangViewSet(viewsets.ModelViewSet):
             return Response({"Cập nhật thành công!"}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-
 
 class KiemKeViewSet(viewsets.ModelViewSet):
     queryset = KiemKe.objects.all()
@@ -240,12 +256,14 @@ class KiemKeViewSet(viewsets.ModelViewSet):
                 loai_kiem_ke = kk.loai_kiem_ke
                 pham_vi = kk.pham_vi_kiem_ke
                 ghi_chu = kk.ghi_chu
+                trang_thai = kk.trang_thai
                 chenh_lech = ChiTietKiemKe.objects.filter(kiem_ke=kk).values('chenh_lech')
                 data.append({
                     "ngay_kiem_ke": ngay_kiem_ke,
                     "loai_kiem_ke": loai_kiem_ke,
                     "pham_vi": pham_vi,
                     "ghi_chu": ghi_chu,
+                    "trang_thai": trang_thai,
                     "chenh_lech": list(chenh_lech)
                 })
             return Response({"lich_su_kiem_ke": data}, status=status.HTTP_200_OK)
@@ -272,8 +290,8 @@ class BaoTriViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-    @action(detail=False, methods=['get'], url_path='dashboard')
-    def dashboard(self, request):
+    @action(detail=False, methods=['get'], url_path='ke_hoach_bao_tri')
+    def ke_hoach_bao_tri(self, request):
         try:
             data = []
             hom_nay = date.today()

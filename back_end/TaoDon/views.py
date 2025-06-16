@@ -1,11 +1,13 @@
 from django.shortcuts import render
 from rest_framework import viewsets, status
+from django.db.models import Case, When, IntegerField, Value
 from django_filters.rest_framework import DjangoFilterBackend
 from datetime import date, timedelta
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import CuaHang, DonXuat, ChiTietDon
 from NhapHang.models import Pallets
+from QuanLyKho.models import SanPham, ViTriKho
 from .serializers import (CuaHangQuanLySerializer, CuaHangSerializer,  
                         DonXuatSerializer, PalletsSerializer, ChiTietDonSerializer)
 
@@ -55,7 +57,43 @@ class PalletsViewSet(viewsets.ViewSet):
             return Response({"pallets": serializer.data}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+        
+    @action(detail=False, methods=['get'], url_path='sap_xep_uu_tien')
+    def sap_xep_uu_tien(self, request):
+        try:
+            today = date.today()
+            han_su_dung_moc = today + timedelta(days=30)
+            kiem_tra_cl_moc = today + timedelta(days=3)
+            Vi_tri_fifo = ViTriKho.objects.filter(uu_tien_fifo=True).values_list('ten_vi_tri', flat=True)
+            queryset = Pallets.objects.annotate(
+                priority=Case(
+                    When(trang_thai="Đã_mở", then=Value(1)),
+                    When(
+                        han_su_dung__range=(today, han_su_dung_moc),
+                        so_thung_con_lai__gt=0,
+                        then=Value(2)
+                    ),
+                    When(
+                        ngay_kiem_tra_cl__range=(today, kiem_tra_cl_moc),
+                        so_thung_con_lai__gt=0,
+                        then=Value(3)
+                    ),
+                    When(
+                        vi_tri_kho__in=Vi_tri_fifo,
+                        so_thung_con_lai__gt=0,
+                        then=Value(4)
+                    ),
+                    default=Value(5),
+                    output_field=IntegerField()
+                )
+            ).order_by('priority', 'so_thung_con_lai')
+
+            serializer = PalletsSerializer(queryset, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+"""
     @action(detail=False, methods=['get'], url_path='pallets_da_mo')
     def danh_sach_pallets_da_mo(self, request):
         try:
@@ -93,10 +131,21 @@ class PalletsViewSet(viewsets.ViewSet):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+"""
     
 class ChiTietDonViewSet(viewsets.ModelViewSet):
     queryset = ChiTietDon.objects.all()
     serializer_class = ChiTietDonSerializer
+
+    @action(detail=False, methods=['get'], url_path='dropdown_san_pham')
+    def dropdown_san_pham(self, request):
+        try:
+            san_pham_list = SanPham.objects.values_list('id', 'ten_san_pham').distinct()
+            data = [{"id": id, "ten_san_pham": ten} for id, ten in san_pham_list]
+            return Response({"san_pham": data}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 
     @action(detail=False, methods=['get'], url_path='loc_don')
     def loc_don(self, request):
