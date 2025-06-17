@@ -1,11 +1,18 @@
 from rest_framework import serializers
-from .models import CuaHang, DonXuat, ChiTietDon
+from .models import CuaHang, DonXuat, ChiTietDon, ChiTietViTriCuaHang
 from NhapHang.models import Pallets
 
+class ChiTietViTriCuaHangSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChiTietViTriCuaHang
+        fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at']
+
 class CuaHangSerializer(serializers.ModelSerializer):
+    dia_chi_chi_tiet = serializers.CharField(source='dia_chi.dia_chi_chi_tiet', read_only=True)
     class Meta:
         model = CuaHang
-        fields = ['ma_cua_hang', 'ten_cua_hang', 'dia_chi', 'so_dien_thoai', 'khu_vuc', 'trang_thai', 'created_at']
+        fields = ['ma_cua_hang', 'ten_cua_hang', 'so_dien_thoai', 'dia_chi', 'dia_chi_chi_tiet', 'trang_thai', 'created_at']
         read_only_fields = ['created_at']
     
     def validate(self, attrs):
@@ -24,21 +31,13 @@ class CuaHangSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Không được vượt quá 100 kí tự.")
             
         return attrs
-
-class CuaHangQuanLySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CuaHang
-        fields = ['ten_cua_hang', 'dia_chi', 'so_dien_thoai']
     
 class DonXuatSerializer(serializers.ModelSerializer):
-    trang_thai = serializers.SerializerMethodField()
-    cua_hang = serializers.SlugRelatedField(
-        slug_field='ten_cua_hang',  
-        queryset=CuaHang.objects.all()  
-    )
+    ten_cua_hang = serializers.CharField(source='cua_hang.ten_cua_hang', read_only=True)
+
     class Meta:
         model = DonXuat
-        fields = '__all__'
+        fields = ['ma_don', 'cua_hang', 'ten_cua_hang', 'ngay_tao', 'ngay_giao', 'trang_thai', 'qr_code_data', 'da_in_qr', 'nguoi_tao', 'ghi_chu', 'created_at']
         read_only_fields = ['created_at']
 
     def get_trang_thai(self, obj):
@@ -51,14 +50,21 @@ class PalletsSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at']
 
 class ChiTietDonSerializer(serializers.ModelSerializer):
-    don_xuat = serializers.SlugRelatedField(
-        slug_field='ma_don',  
-        queryset=DonXuat.objects.all()  
-    )
+    ma_don_xuat = serializers.CharField(source='don_xuat.ma_don', read_only=True)
+    ten_san_pham = serializers.CharField(source='san_pham.ten_san_pham', read_only=True)
 
     class Meta:
         model = ChiTietDon
-        fields = '__all__'
+        fields = [
+            'don_xuat', 
+            'ma_don_xuat', 
+            'san_pham', 
+            'ten_san_pham', 
+            'so_luong_can', 
+            'pallet_assignments',
+            'da_xuat_xong',
+            'created_at'
+        ]
         read_only_fields = ['created_at']
     
     def validate(self, attrs):

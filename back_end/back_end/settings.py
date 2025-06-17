@@ -91,7 +91,7 @@ WSGI_APPLICATION = "back_end.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'thado_project',   # Tên database MySQL của bạn
+        'NAME': 'klever_fruit',   # Tên database MySQL của bạn
         'USER': 'root',            # Tên người dùng MySQL
         'PASSWORD': '123456',      # Mật khẩu MySQL
         'HOST': 'localhost',       # Hoặc IP của server MySQL
