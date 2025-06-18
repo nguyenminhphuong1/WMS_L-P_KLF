@@ -1,4 +1,4 @@
-CREATE TABLE tinh_trang_hang (
+CREATE TABLE tinh_trang_pallet (
     id INT PRIMARY KEY AUTO_INCREMENT,
     pallet_id INT NOT NULL,
     loai_tinh_trang ENUM('Bình_thường', 'Sắp_hết_hạn', 'Cần_kiểm_tra_CL', 'Có_vấn_đề', 'Ưu_tiên_xuất') NOT NULL,
