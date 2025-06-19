@@ -96,7 +96,6 @@ CREATE TABLE san_pham (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (nhom_hang_id) REFERENCES nhom_hang(id)
-    -- FOREIGN KEY (nha_cung_cap_id) REFERENCES nha_cung_cap(id) -- Sẽ thêm sau khi tạo nha_cung_cap
 );
 CREATE TABLE nha_cung_cap (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -142,7 +141,7 @@ CREATE TABLE chi_tiet_vi_tri_cua_hang (
     thanh_pho VARCHAR(20) NOT NULL ,
     huyen VARCHAR(20) NOT NULL,
     xa VARCHAR(20) NOT NULL,
-    dia_chi_chi_tiet VARCHAR(20) NOT NULL
+    dia_chi_chi_tiet VARCHAR(20) 
 );
 CREATE TABLE cua_hang (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -192,9 +191,7 @@ CREATE TABLE tinh_trang_pallet (
     ghi_chu TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (pallet_id) REFERENCES pallets(id),
-    INDEX idx_loai_tinh_trang (loai_tinh_trang),
-    INDEX idx_trang_thai (trang_thai)
+    FOREIGN KEY (pallet_id) REFERENCES pallets(id)
 );
 CREATE TABLE kiem_ke (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -206,9 +203,7 @@ CREATE TABLE kiem_ke (
     trang_thai ENUM('Chuẩn bị', 'Đang thực hiện', 'Hoàn thành', 'Tạm dừng', 'Hủy') DEFAULT 'Chuẩn bị',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (nguoi_kiem_ke) REFERENCES users(id),
-    KEY idx_loai_kiem_ke (loai_kiem_ke),
-    KEY idx_trang_thai (trang_thai)
+    FOREIGN KEY (nguoi_kiem_ke) REFERENCES users(id)
 );
 -- Bảng chi tiết kiểm kê từng pallet
 CREATE TABLE chi_tiet_kiem_ke (
@@ -218,8 +213,8 @@ CREATE TABLE chi_tiet_kiem_ke (
     -- Thông tin trước kiểm kê (từ hệ thống - snapshot tại thời điểm tạo phiên kiểm kê)
     so_thung_he_thong INT NOT NULL, -- lấy từ pallets.so_thung_con_lai
     han_su_dung_he_thong DATE NOT NULL, -- lấy từ pallets.han_su_dung
-    trang_thai_he_thong ENUM('Mới', 'Đã_mở', 'Trống') NOT NULL, -- lấy từ pallets.trang_thai
-    
+    trang_thai_he_thong ENUM('Mới', 'Đã_mở', 'Trống') NOT NULL, -- lấy từ pallets.tinh_trang_pallet
+
     -- Thông tin thực tế (sau kiểm kê)
     so_thung_thuc_te INT,
     han_su_dung_thuc_te DATE,
@@ -239,25 +234,22 @@ CREATE TABLE chi_tiet_kiem_ke (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     FOREIGN KEY (kiem_ke_id) REFERENCES kiem_ke(id),
-    FOREIGN KEY (pallet_id) REFERENCES pallets(id),
-    
-    INDEX idx_phien_kiem_ke (kiem_ke_id),
-    INDEX idx_thoi_gian_kiem_ke (thoi_gian_kiem_ke)
+    FOREIGN KEY (pallet_id) REFERENCES pallets(id)
 );
 CREATE TABLE danh_muc_thiet_bi (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    TenDanhMuc VARCHAR(100) NOT NULL,
-    MoTa TEXT,
-    NgayTao DATETIME DEFAULT CURRENT_TIMESTAMP
+    ten_danh_muc_thiet_bi VARCHAR(100) NOT NULL,
+    mo_ta TEXT,
+    ngay_tao DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Bảng nhà cung cấp
 CREATE TABLE nha_cung_cap_thiet_bi (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    TenNCC VARCHAR(150) NOT NULL,
-    DiaChi VARCHAR(255),
-    SoDienThoai VARCHAR(20) not NULL,
-    Email VARCHAR(100)
+    ten_ncc VARCHAR(150) NOT NULL,
+    dia_chi VARCHAR(255),
+    so_dien_thoai VARCHAR(20) not NULL,
+    email VARCHAR(100)
 );
 
 -- Bảng thiết bị
@@ -277,7 +269,6 @@ CREATE TABLE thiet_bi (
     FOREIGN KEY (nha_cung_cap_id) REFERENCES nha_cung_cap_thiet_bi(id),
     FOREIGN KEY (khu_vuc_id) REFERENCES khu_vuc(id)
 );
-
 
 -- Bảng kế hoạch bảo trì
 CREATE TABLE ke_hoach_bao_tri (
@@ -300,9 +291,7 @@ CREATE TABLE log_kiem_tra_giao_hang (
     ngay_kiem_tra DATETIME DEFAULT CURRENT_TIMESTAMP,
     nguoi_kiem_tra VARCHAR(50),
     vi_tri_gps VARCHAR(100),
-    ghi_chu TEXT,
-    INDEX idx_don_hang (don_xuat_id),
-    INDEX idx_ngay_kiem_tra (ngay_kiem_tra)
+    ghi_chu TEXT
 );
 CREATE TABLE log_lich_su_bao_tri (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -340,15 +329,7 @@ CREATE TABLE lich_su_nhap_xuat_hang (
     ngay_hoan_thanh DATE,
     gio_hoan_thanh TIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    -- Indexes
-    INDEX idx_loai_giao_dich (loai_giao_dich),
-    INDEX idx_trang_thai (trang_thai),
-    INDEX idx_pallet_id (pallet_id),
-    INDEX idx_don_xuat_id (don_xuat_id),
-    INDEX idx_ngay_tao (ngay_tao),
-    INDEX idx_nguoi_thuc_hien (nguoi_thuc_hien)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 CREATE TABLE lich_su_thay_doi (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -361,13 +342,7 @@ CREATE TABLE lich_su_thay_doi (
     nguoi_thuc_hien VARCHAR(50),
     ip_address VARCHAR(45),
     ly_do_thay_doi TEXT,
-    thoi_gian TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    INDEX idx_bang_du_lieu (bang_du_lieu),
-    INDEX idx_ban_ghi_id (ban_ghi_id),
-    INDEX idx_nguoi_thuc_hien (nguoi_thuc_hien),
-    INDEX idx_thoi_gian (thoi_gian),
-    INDEX idx_hanh_dong (hanh_dong)
+    thoi_gian TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE cai_dat_he_thong (
@@ -379,10 +354,3 @@ CREATE TABLE cai_dat_he_thong (
     kieu_du_lieu ENUM('string', 'number', 'boolean', 'json') DEFAULT 'string',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
-INSERT INTO cai_dat_he_thong (khoa_cai_dat, gia_tri, mo_ta, nhom_cai_dat) VALUES
-('canh_bao_het_han_truoc', '7', 'Cảnh báo trước bao nhiêu ngày khi hàng hết hạn', 'Cảnh_báo'),
-('canh_bao_ton_kho_thap', '10', 'Cảnh báo khi tồn kho dưới ngưỡng (thùng)', 'Cảnh_báo'),
-('chu_ky_kiem_ke_tu_dong', '30', 'Chu kỳ kiểm kê tự động (ngày)', 'Kiểm_kê'),
-('ty_le_su_dung_kho_toi_da', '85', 'Tỷ lệ sử dụng kho tối đa (%)', 'Kho'),
-('thoi_gian_lam_viec_bat_dau', '07:00', 'Giờ bắt đầu ca làm việc', 'Thời_gian'),
-('thoi_gian_lam_viec_ket_thuc', '18:00', 'Giờ kết thúc ca làm việc', 'Thời_gian');
