@@ -1,4 +1,4 @@
-1. INDEXES CHO CÁC FOREIGN KEY RELATIONSHIPS
+--1. INDEXES CHO CÁC FOREIGN KEY RELATIONSHIPS
 -- Tối ưu cho JOIN operations và referential integrity
 
 -- Users table
