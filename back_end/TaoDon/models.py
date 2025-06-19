@@ -2,9 +2,9 @@ from django.db import models
 
 # Create your models here.
 class ChiTietViTriCuaHang(models.Model):
-    thanh_pho = models.CharField(max_length=20, null=False)
-    huyen = models.CharField(max_length=20, null=False)
-    xa = models.CharField(max_length=20, null=False)
+    thanh_pho = models.CharField(max_length=50, null=False)
+    huyen = models.CharField(max_length=50, null=False)
+    xa = models.CharField(max_length=50, null=False)
     dia_chi_chi_tiet = models.TextField(null=False)
 
     class Meta:
@@ -16,7 +16,7 @@ class CuaHang(models.Model):
     ma_cua_hang = models.CharField(unique=True, max_length=20, null=False)
     ten_cua_hang = models.CharField(max_length=100, null=False)
     so_dien_thoai = models.CharField(max_length=15, blank=True, null=True)
-    dia_chi = models.ForeignKey('ChiTietViTriCuaHang', models.CASCADE)
+    dia_chi = models.ForeignKey('ChiTietViTriCuaHang', models.PROTECT)
     trang_thai = models.CharField(max_length=9, choices=[
         ('Hoạt_động', 'Hoạt động'),
         ('Tạm_dừng', 'Tạm dừng')
@@ -33,7 +33,7 @@ class CuaHang(models.Model):
 
 class DonXuat(models.Model):
     ma_don = models.CharField(unique=True, max_length=20)
-    cua_hang = models.ForeignKey('CuaHang', models.CASCADE)
+    cua_hang = models.ForeignKey('CuaHang', models.PROTECT)
     ngay_tao = models.DateField()
     ngay_giao = models.DateField(blank=True, null=True)
     trang_thai = models.CharField(max_length=10, choices=[
@@ -55,11 +55,11 @@ class DonXuat(models.Model):
         return self.ma_don
 
 class ChiTietDon(models.Model):
-    don_xuat = models.ForeignKey('DonXuat', models.CASCADE)
-    san_pham = models.ForeignKey('QuanLyKho.SanPham', models.CASCADE)
+    don_xuat = models.ForeignKey('DonXuat', models.PROTECT)
+    san_pham = models.ForeignKey('QuanLyKho.SanPham', models.PROTECT)
     so_luong_can = models.IntegerField()
     pallet_assignments = models.JSONField(blank=True, null=True)
-    da_xuat_xong = models.BooleanField(blank=True, null=True, default=False)
+    da_xuat_xong = models.BooleanField(null=True, default=False)
     ghi_chu = models.TextField(blank=True, null=True)
 
     class Meta:

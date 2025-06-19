@@ -13,7 +13,12 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
+import sys
 import os
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BASE_DIR)
+
+from config_secret import DATABASES, SECRET_KEY
 
 load_dotenv()
 
@@ -25,7 +30,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-7-#sk%jc=6wdpcgoi6^c6nw#t4ea%l%yt)yvdj0&_0d3!8hs4="
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -54,6 +58,7 @@ INSTALLED_APPS = [
 CORS_ALLOW_ALL_ORIGINS = True
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -61,7 +66,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
 ]
 
 ROOT_URLCONF = "back_end.urls"
@@ -87,20 +91,6 @@ WSGI_APPLICATION = "back_end.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'klever_fruit',   # Tên database MySQL của bạn
-        'USER': 'root',            # Tên người dùng MySQL
-        'PASSWORD': '123456',      # Mật khẩu MySQL
-        'HOST': 'localhost',       # Hoặc IP của server MySQL
-        'PORT': '3306',            # Port MySQL (mặc định là 3306)
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        }
-    }
-}
 
 
 # Password validation

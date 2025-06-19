@@ -12,7 +12,7 @@ class CuaHangSerializer(serializers.ModelSerializer):
     dia_chi_chi_tiet = serializers.CharField(source='dia_chi.dia_chi_chi_tiet', read_only=True)
     class Meta:
         model = CuaHang
-        fields = ['ma_cua_hang', 'ten_cua_hang', 'so_dien_thoai', 'dia_chi', 'dia_chi_chi_tiet', 'trang_thai', 'created_at']
+        fields = ['id', 'ma_cua_hang', 'ten_cua_hang', 'so_dien_thoai', 'dia_chi', 'dia_chi_chi_tiet', 'trang_thai', 'created_at']
         read_only_fields = ['created_at']
     
     def validate(self, attrs):
@@ -37,7 +37,7 @@ class DonXuatSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DonXuat
-        fields = ['ma_don', 'cua_hang', 'ten_cua_hang', 'ngay_tao', 'ngay_giao', 'trang_thai', 'qr_code_data', 'da_in_qr', 'nguoi_tao', 'ghi_chu', 'created_at']
+        fields = ['id','ma_don', 'cua_hang', 'ten_cua_hang', 'ngay_tao', 'ngay_giao', 'trang_thai', 'qr_code_data', 'da_in_qr', 'nguoi_tao', 'ghi_chu', 'created_at']
         read_only_fields = ['created_at']
 
     def get_trang_thai(self, obj):
@@ -56,6 +56,7 @@ class ChiTietDonSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChiTietDon
         fields = [
+            'id',
             'don_xuat', 
             'ma_don_xuat', 
             'san_pham', 
@@ -67,9 +68,24 @@ class ChiTietDonSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['created_at']
     
-    def validate(self, attrs):
-        if attrs['so_luong_can'] <= 0:
+    def validate_so_luong_can(self, value):
+        if value <= 0:
             raise serializers.ValidationError("Số lượng không thể nhỏ hơn 0.")
-        return attrs
+        return value
+    
+    def validate_pallet_assignments(self, value):
+        if value is None:
+            return value
+
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Phải là một danh sách (list).")
+
+        for item in value:
+            if not isinstance(item, dict):
+                raise serializers.ValidationError("Mỗi phần tử phải là một object (dict).")
+
+            if 'pallet_id' not in item or 'location' not in item:
+                raise serializers.ValidationError("Thiếu 'pallet_id' hoặc 'location' trong một phần tử.")
+        return value
     
 

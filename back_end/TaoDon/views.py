@@ -8,8 +8,7 @@ from rest_framework.response import Response
 from .models import CuaHang, DonXuat, ChiTietDon, ChiTietViTriCuaHang
 from NhapHang.models import Pallets
 from QuanLyKho.models import SanPham, ViTriKho
-from .serializers import (CuaHangSerializer,  
-                        DonXuatSerializer, PalletsSerializer, ChiTietDonSerializer, ChiTietViTriCuaHangSerializer)
+from .serializers import CuaHangSerializer, DonXuatSerializer, PalletsSerializer, ChiTietDonSerializer, ChiTietViTriCuaHangSerializer
 
 # Create your views here.
 class ChiTietViTriCuaHangViewSet(viewsets.ModelViewSet):

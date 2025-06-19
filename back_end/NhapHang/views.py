@@ -8,6 +8,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import Pallets
 from .serializers import PalletsSerializers
 from QuanLyKho.models import SanPham, ViTriKho, NhaCungCap
+import re
 
 # Create your views here.
 class PalletsViewSet(viewsets.ModelViewSet):
@@ -61,14 +62,25 @@ class PalletsViewSet(viewsets.ModelViewSet):
     def auto_pallet(self, request):
         try:
             today = date.today()
-            ngay = today.day
-            thang = today.month
-            nam = today.year
-            ma_pallet = f"P-{ngay:02d}{thang:02d}{nam % 100:02d}"
+            date_str = today.strftime('%d%m%y') 
+            prefix = f"P-{date_str}-"
 
-            return Response({
-                "ma_pallet": ma_pallet
-            }, status=status.HTTP_200_OK)
+            pallets_today = Pallets.objects.filter(ma_pallet__startswith=prefix)
+
+            max_number = 0
+            pattern = re.compile(rf"{prefix}(\d+)$")
+            for pallet in pallets_today:
+                match = pattern.match(pallet.ma_pallet)
+                if match:
+                    num = int(match.group(1))
+                    if num > max_number:
+                        max_number = num
+
+            next_number = max_number + 1
+            ma_pallet = f"{prefix}{next_number:03d}" 
+
+            return Response({"ma_pallet": ma_pallet}, status=status.HTTP_200_OK)
+
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         

@@ -5,8 +5,6 @@ from .views import PalletsViewSet
 router = DefaultRouter()
 router.register(r'pallets', PalletsViewSet)
 
-
-
 urlpatterns = [
     path('', include(router.urls)),
 ]

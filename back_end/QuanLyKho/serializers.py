@@ -12,7 +12,7 @@ class ViTriKhoSerializer(serializers.ModelSerializer):
     ten_khu_vuc = serializers.CharField(source='khu_vuc.ten_khu_vuc', read_only=True)
     class Meta:
         model = ViTriKho
-        fields = ['ma_vi_tri', 'khu_vuc', 'ten_khu_vuc', 'hang', 'cot', 'loai_vi_tri',
+        fields = ['id', 'ma_vi_tri', 'khu_vuc', 'ten_khu_vuc', 'hang', 'cot', 'loai_vi_tri',
                   'tai_trong_max', 'chieu_cao_max', 'trang_thai', 'uu_tien_fifo',
                    'gan_cua_ra', 'vi_tri_cach_ly', 'ghi_chu', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
@@ -75,6 +75,7 @@ class NhaCungCapSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Số điện thoại chỉ được chứa chữ số.")
             if len(so_dien_thoai) != 10:
                 raise serializers.ValidationError("Số điện thoại phải đúng 10 chữ số.")
+        return attrs
 
 class TinhTrangHangSerializer(serializers.ModelSerializer):
     class Meta:

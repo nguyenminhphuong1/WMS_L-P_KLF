@@ -9,6 +9,7 @@ class PalletsSerializers(serializers.ModelSerializer):
     class Meta:
         model = Pallets
         fields = [
+            'id',
             'ma_pallet', 
             'san_pham', 
             'ten_san_pham',

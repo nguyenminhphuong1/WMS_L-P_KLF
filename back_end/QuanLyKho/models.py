@@ -29,7 +29,7 @@ class KhuVuc(models.Model):
 
 class ViTriKho(models.Model):
     ma_vi_tri = models.CharField(unique=True, max_length=10)
-    khu_vuc = models.ForeignKey('KhuVuc', models.CASCADE)
+    khu_vuc = models.ForeignKey('KhuVuc', models.PROTECT)
     hang = models.CharField(max_length=1)
     cot = models.IntegerField()
     loai_vi_tri = models.CharField(max_length=6, choices=[
@@ -129,13 +129,13 @@ class NhomHang(models.Model):
 class SanPham(models.Model):
     ma_san_pham = models.CharField(unique=True, max_length=50)
     ten_san_pham = models.CharField(max_length=100)
-    nhom_hang = models.ForeignKey('NhomHang', models.CASCADE, null=True, blank=True)
+    nhom_hang = models.ForeignKey('NhomHang', models.PROTECT)
     thuong_hieu = models.CharField(max_length=100, blank=True, null=True)
     dung_tich = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     don_vi_tinh = models.CharField(max_length=20, blank=True, null=True)
     so_luong_per_thung = models.IntegerField(blank=True, null=True)
     ma_vach = models.CharField(max_length=100, blank=True, null=True)
-    nha_cung_cap = models.ForeignKey('NhaCungCap', models.CASCADE)
+    nha_cung_cap = models.ForeignKey('NhaCungCap', models.PROTECT)
     han_su_dung_mac_dinh = models.IntegerField(blank=True, null=True)
     chu_ky_kiem_tra_cl = models.IntegerField(blank=True, null=True)
     hinh_anh = models.CharField(max_length=255, blank=True, null=True)
@@ -175,7 +175,7 @@ class NhaCungCap(models.Model):
         db_table = 'nha_cung_cap'
 
 class TinhTrangHang(models.Model):
-    pallet = models.ForeignKey('NhapHang.Pallets', models.CASCADE)
+    pallet = models.ForeignKey('NhapHang.Pallets', models.PROTECT)
     loai_tinh_trang = models.CharField(max_length=15, choices=[
         ('Bình_thường', 'Bình thường'),
         ('Sắp_hết_hạn', 'Sắp hết hạn'),
@@ -236,10 +236,10 @@ class KiemKe(models.Model):
         return self.ma_kiem_ke
 
 class ChiTietKiemKe(models.Model):
-    phien_kiem_ke = models.ForeignKey('KiemKe', models.CASCADE)
-    pallet = models.ForeignKey('NhapHang.Pallets', models.CASCADE)
-    vi_tri_kho = models.ForeignKey('ViTriKho', models.CASCADE)
-    san_pham = models.ForeignKey('SanPham', models.CASCADE)
+    phien_kiem_ke = models.ForeignKey('KiemKe', models.PROTECT)
+    pallet = models.ForeignKey('NhapHang.Pallets', models.PROTECT)
+    vi_tri_kho = models.ForeignKey('ViTriKho', models.PROTECT)
+    san_pham = models.ForeignKey('SanPham', models.PROTECT)
     so_thung_he_thong = models.IntegerField()
     han_su_dung_he_thong = models.DateField(blank=True, null=True)
     trang_thai_he_thong = models.CharField(max_length=10, choices=[

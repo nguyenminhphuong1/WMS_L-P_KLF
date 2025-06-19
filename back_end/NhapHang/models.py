@@ -26,7 +26,7 @@ class CaiDatHeThong(models.Model):
 
 
 class LogKiemTraGiaoHang(models.Model):
-    don_xuat = models.ForeignKey('TaoDon.DonXuat', models.CASCADE)
+    don_xuat = models.ForeignKey('TaoDon.DonXuat', models.PROTECT)
     cua_hang_dich = models.CharField(max_length=100, blank=True, null=True)
     cua_hang_thuc = models.CharField(max_length=100, blank=True, null=True)
     ket_qua = models.CharField(max_length=4)
@@ -40,11 +40,11 @@ class LogKiemTraGiaoHang(models.Model):
 
 class Pallets(models.Model):
     ma_pallet = models.CharField(unique=True, max_length=20)
-    san_pham = models.ForeignKey(SanPham, models.CASCADE)
+    san_pham = models.ForeignKey(SanPham, models.PROTECT)
     nha_cung_cap = models.ForeignKey(NhaCungCap, models.CASCADE, null=True, blank=True)
     so_thung_ban_dau = models.IntegerField()
     so_thung_con_lai = models.IntegerField()
-    vi_tri_kho = models.ForeignKey(ViTriKho, models.CASCADE)
+    vi_tri_kho = models.ForeignKey(ViTriKho, models.PROTECT)
     ngay_san_xuat = models.DateField()
     han_su_dung = models.DateField()
     ngay_kiem_tra_cl = models.DateField()
