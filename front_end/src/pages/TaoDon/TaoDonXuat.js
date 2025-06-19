@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plus, Save, Trash2, Calculator, Package } from "lucide-react"
 import Modal from "../../components/common/Modal"
 
@@ -12,20 +12,60 @@ const TaoDonXuat = () => {
   const [showAllocationModal, setShowAllocationModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
   const [allocationResult, setAllocationResult] = useState([])
+  const [stores, setStores] = useState([])
+  const [storesLoading, setStoresLoading] = useState(false)
+  const [storesError, setStoresError] = useState("")
+  const [products, setProducts] = useState([])
+  const [productsLoading, setProductsLoading] = useState(false)
+  const [productsError, setProductsError] = useState("")
 
-  // Mock data
-  const stores = [
-    { id: 1, name: "Siêu thị BigC Thăng Long", area: "Hà Nội" },
-    { id: 2, name: "Cửa hàng Trái cây Sạch ABC", area: "TP.HCM" },
-    { id: 3, name: "Lotte Mart Đà Nẵng", area: "Đà Nẵng" },
-  ]
-
-  const products = [
-    { id: 1, code: "AP001", name: "Táo Fuji", unit: "kg" },
-    { id: 2, code: "OR001", name: "Cam Sành", unit: "kg" },
-    { id: 3, code: "BN001", name: "Chuối Tiêu", unit: "kg" },
-    { id: 4, code: "MG001", name: "Xoài Cát", unit: "kg" },
-  ]
+  useEffect(() => {
+    const fetchStores = async () => {
+      setStoresLoading(true)
+      setStoresError("")
+      try {
+        const response = await fetch("http://127.0.0.1:8000/taodon/donxuat/drop_down/")
+        if (!response.ok) throw new Error("Không thể tải danh sách cửa hàng")
+        const data = await response.json()
+        if (data.ds_cua_hang) {
+          setStores(data.ds_cua_hang)
+        } else {
+          setStores([])
+        }
+      } catch (err) {
+        setStoresError(err.message || "Lỗi không xác định")
+        setStores([])
+      } finally {
+        setStoresLoading(false)
+      }
+    }
+    fetchStores()
+    const fetchProducts = async () => {
+      setProductsLoading(true)
+      setProductsError("")
+      try {
+        const response = await fetch("http://127.0.0.1:8000/nhaphang/pallets/drop_down/")
+        if (!response.ok) throw new Error("Không thể tải danh sách sản phẩm")
+        const data = await response.json()
+        if (data.ds_san_pham) {
+          setProducts(data.ds_san_pham.map((sp) => ({
+            id: sp.id,
+            code: String(sp.id),
+            name: sp.label,
+            unit: ""
+          })))
+        } else {
+          setProducts([])
+        }
+      } catch (err) {
+        setProductsError(err.message || "Lỗi không xác định")
+        setProducts([])
+      } finally {
+        setProductsLoading(false)
+      }
+    }
+    fetchProducts()
+  }, [])
 
   // Mock pallet data với thông tin chi tiết
   const pallets = [
@@ -163,6 +203,9 @@ const TaoDonXuat = () => {
             if (product) {
               updatedItem.productName = product.name
               updatedItem.unit = product.unit
+            } else {
+              updatedItem.productName = ""
+              updatedItem.unit = ""
             }
           }
 
@@ -177,16 +220,44 @@ const TaoDonXuat = () => {
     setOrderItems(orderItems.filter((item) => item.id !== id))
   }
 
-  const handleAutoAllocate = (item) => {
+  const handleAutoAllocate = async (item) => {
     if (!item.productCode || !item.quantity) {
       alert("Vui lòng chọn sản phẩm và nhập số lượng")
       return
     }
 
-    const result = allocatePallets(item.productCode, Number.parseInt(item.quantity))
-    setSelectedItem(item)
-    setAllocationResult(result)
-    setShowAllocationModal(true)
+    try {
+      // Gọi API lấy danh sách pallet đã sắp xếp ưu tiên
+      const response = await fetch("http://127.0.0.1:8000/taodon/pallets/sap_xep_uu_tien/")
+      if (!response.ok) throw new Error("Không thể lấy dữ liệu pallet ưu tiên")
+      const pallets = await response.json()
+      // Lọc pallet theo sản phẩm
+      const filteredPallets = pallets.filter((p) => String(p.san_pham) === String(item.productCode) && p.so_thung_con_lai > 0)
+      // Phân bổ số lượng theo thứ tự ưu tiên
+      let remainingQuantity = Number.parseInt(item.quantity)
+      const allocation = []
+      for (const pallet of filteredPallets) {
+        if (remainingQuantity <= 0) break
+        const allocatedQuantity = Math.min(remainingQuantity, pallet.so_thung_con_lai)
+        allocation.push({
+          ...pallet,
+          allocatedQuantity,
+          remainingAfterAllocation: pallet.so_thung_con_lai - allocatedQuantity,
+        })
+        remainingQuantity -= allocatedQuantity
+      }
+      const allocationResult = {
+        allocation,
+        totalAllocated: Number.parseInt(item.quantity) - remainingQuantity,
+        shortfall: remainingQuantity,
+        isFullyAllocated: remainingQuantity === 0,
+      }
+      setSelectedItem(item)
+      setAllocationResult(allocationResult)
+      setShowAllocationModal(true)
+    } catch (err) {
+      alert(err.message || "Lỗi khi phân bổ pallet")
+    }
   }
 
   const confirmAllocation = () => {
@@ -223,7 +294,7 @@ const TaoDonXuat = () => {
     const order = {
       id: Date.now(),
       storeId: selectedStore,
-      storeName: stores.find((s) => s.id === Number.parseInt(selectedStore))?.name,
+      storeName: stores.find((s) => String(s.id) === String(selectedStore))?.label,
       orderDate,
       items: orderItems,
       totalQuantity: calculateTotalQuantity(),
@@ -273,17 +344,17 @@ const TaoDonXuat = () => {
         </div>
       </div>
 
-      <div className="allocation-table">
-        <table className="table">
+      <div className="allocation-table-container">
+        <table className="allocation-table">
           <thead>
             <tr>
-              <th>Mã Pallet</th>
-              <th>Vị trí</th>
-              <th>Tồn kho</th>
-              <th>Phân bổ</th>
-              <th>Còn lại</th>
-              <th>Hết hạn</th>
-              <th>Trạng thái</th>
+              <th style={{ width: "120px", minWidth: "120px" }}>Mã Pallet</th>
+              <th style={{ width: "80px", minWidth: "80px" }}>Vị trí</th>
+              <th style={{ width: "90px", minWidth: "90px" }}>Tồn kho</th>
+              <th style={{ width: "90px", minWidth: "90px" }}>Phân bổ</th>
+              <th style={{ width: "80px", minWidth: "80px" }}>Còn lại</th>
+              <th style={{ width: "80px", minWidth: "80px" }}>Hết hạn</th>
+              <th style={{ width: "140px", minWidth: "140px" }}>Trạng thái</th>
             </tr>
           </thead>
           <tbody>
@@ -297,7 +368,9 @@ const TaoDonXuat = () => {
                   {pallet.availableQuantity} {selectedItem?.unit}
                 </td>
                 <td className="allocated-quantity">
-                  {pallet.allocatedQuantity} {selectedItem?.unit}
+                  <strong>
+                    {pallet.allocatedQuantity} {selectedItem?.unit}
+                  </strong>
                 </td>
                 <td>
                   {pallet.remainingAfterAllocation} {selectedItem?.unit}
@@ -352,11 +425,13 @@ const TaoDonXuat = () => {
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Cửa hàng *</label>
-              <select className="form-input" value={selectedStore} onChange={(e) => setSelectedStore(e.target.value)}>
+              <select className="form-input" value={selectedStore} onChange={(e) => setSelectedStore(e.target.value)} disabled={storesLoading}>
                 <option value="">Chọn cửa hàng</option>
+                {storesLoading && <option disabled>Đang tải...</option>}
+                {storesError && <option disabled>Lỗi: {storesError}</option>}
                 {stores.map((store) => (
                   <option key={store.id} value={store.id}>
-                    {store.name} - {store.area}
+                    {store.label}
                   </option>
                 ))}
               </select>
@@ -415,11 +490,14 @@ const TaoDonXuat = () => {
                         className="table-input"
                         value={item.productCode}
                         onChange={(e) => updateOrderItem(item.id, "productCode", e.target.value)}
+                        disabled={productsLoading}
                       >
                         <option value="">Chọn SP</option>
+                        {productsLoading && <option disabled>Đang tải...</option>}
+                        {productsError && <option disabled>Lỗi: {productsError}</option>}
                         {products.map((product) => (
                           <option key={product.id} value={product.code}>
-                            {product.code}
+                            {product.name}
                           </option>
                         ))}
                       </select>

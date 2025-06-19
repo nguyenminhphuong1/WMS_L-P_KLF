@@ -89,6 +89,8 @@ const QuanLyViTri = () => {
   const [selectedArea, setSelectedArea] = useState(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
+  const [showMapModal, setShowMapModal] = useState(false)
+  const [mapData, setMapData] = useState([])
 
   // Thêm state cho modal thêm vị trí nâng cao
   const [showAdvancedAddModal, setShowAdvancedAddModal] = useState(false)
@@ -174,6 +176,25 @@ const QuanLyViTri = () => {
     )
   }
 
+  const handleViewMap = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/quanlykho/vitrikho/xem_map/')
+      if (!response.ok) {
+        throw new Error('Network response was not ok')
+      }
+      const result = await response.json()
+      if (result.map_data) {
+        setMapData(result.map_data)
+        setShowMapModal(true)
+      } else {
+        throw new Error('Invalid data format')
+      }
+    } catch (error) {
+      console.error('Error fetching map data:', error)
+      alert('Không thể tải dữ liệu bản đồ. Vui lòng thử lại sau.')
+    }
+  }
+
   return (
     <div className="quan-ly-vi-tri">
       <div className="page-header">
@@ -196,7 +217,6 @@ const QuanLyViTri = () => {
             </select>
           </div>
           <div className="action-buttons">
-            {/* Cập nhật nút thêm vị trí để mở modal nâng cao */}
             <button className="btn btn-outline" onClick={() => setShowAdvancedAddModal(true)}>
               <Plus size={20} />
               Thêm vị trí nâng cao
@@ -205,7 +225,7 @@ const QuanLyViTri = () => {
               <Plus size={20} />
               Thêm khu vực
             </button>
-            <button className="btn btn-secondary">
+            <button className="btn btn-secondary" onClick={handleViewMap}>
               <Map size={20} />
               Xem map
             </button>
@@ -508,6 +528,70 @@ const QuanLyViTri = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal xem map */}
+      <Modal
+        isOpen={showMapModal}
+        onClose={() => setShowMapModal(false)}
+        title="Bản đồ kho"
+        size="large"
+      >
+        {mapData && mapData.length > 0 ? (
+          <>
+            <div className="map-container">
+              {mapData.map((khuVuc) => (
+                <div key={khuVuc.ma_khu_vuc} className="map-area">
+                  <div className="map-area-header">
+                    <h3>{khuVuc.ten_khu_vuc}</h3>
+                    <span className={`status-badge ${khuVuc.trang_thai.toLowerCase()}`}>
+                      {khuVuc.trang_thai}
+                    </span>
+                  </div>
+                  <div
+                    className="map-grid"
+                    style={{
+                      gridTemplateColumns: `repeat(${khuVuc.kich_thuoc_cot}, 1fr)`,
+                      gridTemplateRows: `repeat(${khuVuc.kich_thuoc_hang}, 1fr)`
+                    }}
+                  >
+                    {khuVuc.vi_tri.map((viTri) => (
+                      <div
+                        key={viTri.ma_vi_tri}
+                        className={`map-cell ${viTri.trang_thai.toLowerCase()}`}
+                        title={`${viTri.ma_vi_tri} - ${viTri.loai_vi_tri}`}
+                      >
+                        {viTri.ma_vi_tri}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="map-legend">
+              <div className="legend-item">
+                <div className="legend-color empty"></div>
+                <span>Trống</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-color occupied"></div>
+                <span>Đã sử dụng</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-color maintenance"></div>
+                <span>Bảo trì</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-color reserved"></div>
+                <span>Đã đặt</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="no-data-message">
+            Không có dữ liệu bản đồ
+          </div>
+        )}
       </Modal>
     </div>
   )
