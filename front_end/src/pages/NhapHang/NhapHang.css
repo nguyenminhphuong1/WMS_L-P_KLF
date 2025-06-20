@@ -619,6 +619,7 @@
 }
 
 @media (max-width: 576px) {
+
   .table th,
   .table td {
     padding: 8px 12px;
