@@ -21,10 +21,10 @@ class ViTriKhoViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='xem_map')
     def xem_map(self, request):
         try:
-            ten_khu_vuc = KhuVuc.objects.values_list('ten_khu_vuc', flat=True).distinct()
+            ma_khu_vuc = KhuVuc.objects.values_list('ma_khu_vuc', flat=True)
             return Response({
-                "ten_khu_vuc": list(ten_khu_vuc)
-            }).status(status=status.HTTP_200_OK)
+                "ma_khu_vuc": list(ma_khu_vuc)
+            }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -155,8 +155,6 @@ class NhomHangViewSet(viewsets.ModelViewSet):
             return Response({"tim_kiem": data}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-
         
 class SanPhamViewSet(viewsets.ModelViewSet):
     queryset = SanPham.objects.all()  

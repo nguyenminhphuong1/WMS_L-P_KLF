@@ -1,6 +1,5 @@
 CREATE TABLE vi_tri_kho (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    ma_vi_tri VARCHAR(10) UNIQUE NOT NULL, -- A1, A2, B1, B2...
     khu_vuc_id INT NOT NULL,
     hang CHAR(1) NOT NULL, -- A, B, C, D, E
     cot INT NOT NULL, -- 1, 2, 3, 4, 5
