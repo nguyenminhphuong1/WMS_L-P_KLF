@@ -5,10 +5,10 @@ CREATE TABLE don_xuat (
     ngay_tao DATE NOT NULL,
     ngay_giao DATE,
     trang_thai ENUM('Chờ_xuất', 'Đang_xuất', 'Hoàn_thành', 'Hủy') DEFAULT 'Chờ_xuất',
-    qr_code_data TEXT,
     da_in_qr BOOLEAN DEFAULT FALSE,
-    nguoi_tao VARCHAR(50),
+    nguoi_tao_don_xuat_id INT not NULL,
     ghi_chu TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (nguoi_tao_don_xuat_id) REFERENCES users(id),
     FOREIGN KEY (cua_hang_id) REFERENCES cua_hang(id)
 );
