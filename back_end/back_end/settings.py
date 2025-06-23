@@ -18,7 +18,6 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 
-from config_secret import DATABASES, SECRET_KEY
 
 load_dotenv()
 
@@ -54,7 +53,14 @@ INSTALLED_APPS = [
     "TaoDon",
     "XuatHang",
     "QuanLyKho",
+    "wms_auth"
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
 
 CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', '').lower() == 'true'
 
@@ -107,6 +113,12 @@ DATABASES = {
     }
 }
 
+CACHES = {
+      "default": {
+          "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+      }
+  }
+
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
@@ -147,3 +159,5 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+AUTH_USER_MODEL = 'wms_auth.User'
