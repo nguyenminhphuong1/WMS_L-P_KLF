@@ -42,7 +42,7 @@ class SanPhamSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SanPham
-        fields = ['ma_san_pham', 'ten_san_pham', 'nhom_hang', 'ten_nhom_hang', 'thuong_hieu', 'dung_tich',
+        fields = ['id', 'ma_san_pham', 'ten_san_pham', 'nhom_hang', 'ten_nhom_hang', 'thuong_hieu', 'dung_tich',
                   'don_vi_tinh', 'so_luong_per_thung', 'ma_vach', 'nha_cung_cap', 'ten_nha_cung_cap',
                    'han_su_dung_mac_dinh', 'chu_ky_kiem_tra_cl', 'hinh_anh', 'mo_ta', 'trang_thai', 'created_at']
         read_only_fields = ['created_at']

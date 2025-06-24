@@ -15,6 +15,17 @@ class ChiTietViTriCuaHangViewSet(viewsets.ModelViewSet):
     queryset = ChiTietViTriCuaHang.objects.all()
     serializer_class = ChiTietViTriCuaHangSerializer
 
+    @action(detail=False, methods=['get'], url_path='khu_vuc_phu_song')
+    def danh_sach_khu_vuc(self, request):
+        try:
+            vi_tri_list = ChiTietViTriCuaHang.objects.values('id', 'thanh_pho')
+            ds_khu_vuc = [{"id": kv["id"], "label": kv["thanh_pho"]} for kv in vi_tri_list]
+            return Response({
+                "ds_khu_vuc": ds_khu_vuc,
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class CuaHangViewSet(viewsets.ModelViewSet):
     queryset = CuaHang.objects.all()
     serializer_class = CuaHangSerializer
@@ -27,7 +38,7 @@ class CuaHangViewSet(viewsets.ModelViewSet):
             vi_tri_list = ChiTietViTriCuaHang.objects.values('id', 'dia_chi_chi_tiet')
             ds_vi_tri = [{"id": kv["id"], "label": kv["dia_chi_chi_tiet"]} for kv in vi_tri_list]
             return Response({
-                "ds_khu_vuc": ds_vi_tri,
+                "ds_vi_tri": ds_vi_tri,
             }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -44,12 +55,9 @@ class DonXuatViewSet(viewsets.ModelViewSet):
     def drop_down(self, request):
         try:
             cua_hang_list = CuaHang.objects.values('id', 'ten_cua_hang')
-            san_pham_list = SanPham.objects.values('id', 'ten_san_pham')
-            ds_san_pham = [{"id": sp["id"], "label": sp["ten_san_pham"]} for sp in san_pham_list]
             ds_cua_hang = [{"id": ch["id"], "label": ch["ten_cua_hang"]} for ch in cua_hang_list]
             return Response({
-                "ds_cua_hang": ds_cua_hang,
-                "ds_san_pham": ds_san_pham,
+                "ds_cua_hang": ds_cua_hang
             }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -95,7 +103,7 @@ class PalletsViewSet(viewsets.ViewSet):
             today = date.today()
             han_su_dung_moc = today + timedelta(days=30)
             kiem_tra_cl_moc = today + timedelta(days=3)
-            Vi_tri_fifo = ViTriKho.objects.filter(uu_tien_fifo=True).values('ma_vi_tri', flat=True)
+            Vi_tri_fifo = list(ViTriKho.objects.filter(uu_tien_fifo=True).values_list('ma_vi_tri', flat=True))
             queryset = Pallets.objects.annotate(
                 priority=Case(
                     When(trang_thai="Đã_mở", then=Value(1)),
