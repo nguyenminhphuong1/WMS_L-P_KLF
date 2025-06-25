@@ -10,6 +10,7 @@ import XuatHang from "./pages/XuatHang/XuatHang"
 import KiemTraGiaoHang from "./pages/KiemTraGiaoHang/KiemTraGiaoHang"
 import QuanLyKho from "./pages/QuanLyKho/QuanLyKho"
 import QuanLyViTri from "./pages/QuanLyKho/QuanLyViTri";
+import HienThiQR from "./pages/NhapHang/HienThiQR";
 import "./App.css"
 
 function App() {
@@ -32,6 +33,8 @@ function App() {
                   <Route path="/kiem-tra/*" element={<KiemTraGiaoHang />} />
                   <Route path="/quan-ly-kho/*" element={<QuanLyKho />} />
                   <Route path="/quan-ly-kho/vi-tri/:areaId" element={<QuanLyViTri />} />
+                  <Route path="/nhap-hang/scan" element={<HienThiQR />} />
+
                 </Routes>
               </main>
             </div>

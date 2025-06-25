@@ -19,6 +19,7 @@ import Modal from "../../components/common/Modal";
 import ThemPallet from "./ThemPallet";
 import SuaPallet from "./SuaPallet";
 import ChiTietPallet from "./ChiTietPallet";
+import InQRPallet from "./InQRPallet";
 //import InQRPallet from "./InQRPallet"
 import "./NhapHang.css";
 import { ThemTinhTrangHang } from "./ThemSuaTinhTrangHang";
@@ -34,9 +35,9 @@ const NhapHang = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAddTinhTrangModal, setShowAddTinhTrangModal] = useState(false);
-  const [selectedPalletForTinhTrang, setSelectedPalletForTinhTrang] =
-    useState(null);
+  const [selectedPalletForTinhTrang, setSelectedPalletForTinhTrang] = useState(null);
   const [tinhTrangHienTai, setTinhTrangHienTai] = useState(null);
+  const [showPrintQRModal, setShowPrintQRModal] = useState(false);
 
   const [pallets, setPallets] = useState([]);
 
@@ -57,16 +58,25 @@ const NhapHang = () => {
     }
   };
 
+  const fetchTinhTrangHangByPalletId = async (palletId) => {
+    try {
+      const res = await axios.get(
+        `http://localhost:8000/quanlykho/tinhtranghang/?pallet=${palletId}`
+      );
+      return res.data;
+    } catch (err) {
+      throw err;
+    }
+  };
+
   const handleTinhTrangClick = async (pallet) => {
     setSelectedPalletForTinhTrang(pallet);
     setTinhTrangHienTai(null); // reset trước
     try {
-      const res = await axios.get(
-        `http://localhost:8000/quanlykho/tinhtranghang/?pallet=${pallet.id}`
-      );
+      const data = await fetchTinhTrangHangByPalletId(pallet.id);
       // Giả sử API trả về mảng, lấy phần tử đầu tiên (hoặc sửa lại nếu trả về object)
-      if (res.data && res.data.length > 0) {
-        setTinhTrangHienTai(res.data[0]);
+      if (data && data.length > 0) {
+        setTinhTrangHienTai(data[0]);
       } else {
         setTinhTrangHienTai(null);
       }
@@ -87,18 +97,6 @@ const NhapHang = () => {
   const getRemainPercent = (so_luong_con_lai, so_thung_ban_dau) => {
     if (!so_thung_ban_dau || so_thung_ban_dau === 0) return 0;
     return Math.round((so_luong_con_lai / so_thung_ban_dau) * 100);
-  };
-
-  // Tạo mã pallet tự động
-  const generatePalletCode = () => {
-    const year = new Date().getFullYear();
-    const existingCodes = pallets
-      .filter((p) => p.ma_pallet.startsWith(`P-${year}-`))
-      .map((p) => Number.parseInt(p.ma_pallet.split("-")[2]));
-
-    const nextNumber =
-      existingCodes.length > 0 ? Math.max(...existingCodes) + 1 : 1;
-    return `P-${year}-${nextNumber.toString().padStart(3, "0")}`;
   };
 
   const handleAddPallet = (palletData) => {
@@ -205,6 +203,7 @@ const NhapHang = () => {
             Tạo Pallet mới
           </button>
         </div>
+        
       </div>
 
       {/* Tabs Navigation */}
@@ -237,10 +236,15 @@ const NhapHang = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <button className="btn btn-secondary">
-          <Filter size={16} />
-          Bộ lọc
-        </button>
+        <div className="header-actions">
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowPrintQRModal(true)}
+          >
+            <Plus size={16} />
+            Tạo QR
+          </button>
+        </div>
       </div>
 
       {/* Tab Content */}
@@ -363,7 +367,6 @@ const NhapHang = () => {
             setShowAddModal(false);
           }}
           onCancel={() => setShowAddModal(false)}
-          nextPalletCode={generatePalletCode()}
         />
       </Modal>
 
@@ -379,7 +382,6 @@ const NhapHang = () => {
             setShowUpdateModal(false);
           }}
           onCancel={() => setShowUpdateModal(false)}
-          nextPalletCode={generatePalletCode()}
         />
       </Modal>
 
@@ -395,6 +397,14 @@ const NhapHang = () => {
             onClose={() => setShowDetailModal(false)}
           />
         )}
+      </Modal>
+
+      <Modal
+        isOpen={showPrintQRModal}
+        onClose={() => setShowPrintQRModal(false)}
+        title="In QR cho các Pallet"
+      >
+        <InQRPallet pallets={displayedPallets} />
       </Modal>
 
       <Modal

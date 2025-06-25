@@ -3,6 +3,7 @@
 import axios from 'axios';
 import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, MapPin, Package } from "lucide-react"
+import ChiTietPallet from "./ChiTietPallet";
 
 const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
   const [warehouse, setWarehouse] = useState({
@@ -96,6 +97,27 @@ const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
       }
     };
 
+  // Tạo mã pallet tự động
+  const generatePalletCode = (productCode, currentPosition) => {
+    const today = new Date();
+    const day = today.getDate();        
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();  
+
+    return `${productCode}-${currentPosition}-${day}${month}${year%100}`;
+  };
+
+  useEffect(() => {
+    if (warehouse.san_pham && warehouse.vi_tri_kho) {
+      const selectedProduct = dropdownData.ds_san_pham.find(sp => String(sp.id) === String(warehouse.san_pham));
+      const productCode = selectedProduct ? selectedProduct.code : '';
+      const selectedPosition = dropdownData.ds_vi_tri_kho.find(vt => String(vt.id) === String(warehouse.vi_tri_kho));
+      const positionCode = selectedPosition ? selectedPosition.label : '';
+      const newCode = generatePalletCode(productCode, positionCode);
+      setWarehouse(prev => ({ ...prev, ma_pallet: newCode }));
+    }
+  }, [warehouse.san_pham, warehouse.vi_tri_kho, dropdownData.ds_san_pham, dropdownData.ds_vi_tri_kho]);
+
   return (
     <form onSubmit={handleSubmit} className="pallet-form">
       <div className="form-section">
@@ -105,18 +127,14 @@ const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
         </h4>
 
         <div className="form-row">
-          {/* <div className="form-group">
-            <label className="form-label">Mã Pallet</label>
-            <input type="text" className="form-input" value={nextPalletCode} disabled />
-          </div> */}
           <div className="form-group">
-            <label className="form-label">Mã Pallet *</label>
+            <label className="form-label">Mã Pallet (Tự động) *</label>
             <input
               type="text"
               name="ma_pallet"
               className={`form-input ${errors.ma_pallet ? "error" : ""}`}
               value={warehouse.ma_pallet}
-              onChange={handleChange}
+              readOnly
               placeholder="Nhập mã sản phẩm"
             />
             {errors.ma_pallet && <span className="error-text">{errors.ma_pallet}</span>}

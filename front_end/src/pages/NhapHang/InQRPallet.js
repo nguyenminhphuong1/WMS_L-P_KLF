@@ -1,175 +1,120 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { Download, Printer, Copy } from "lucide-react"
+import React, { useState } from "react";
 
-const InQRPallet = ({ pallet, onClose }) => {
-  const qrRef = useRef()
-  const [qrSize, setQrSize] = useState(200)
+const InQRPallet = ({ pallets }) => {
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [showQRForm, setShowQRForm] = useState(false);
 
-  // Tạo dữ liệu QR code
-  const qrData = {
-    palletCode: pallet.palletCode,
-    productCode: pallet.productCode,
-    productName: pallet.productName,
-    quantity: pallet.quantity,
-    unit: pallet.unit,
-    location: pallet.location,
-    expiryDate: pallet.expiryDate,
-    importDate: pallet.importDate,
-  }
+  const getQrUrl = (pallet) => {
+    // Encode toàn bộ thông tin pallet vào tham số data
+    const palletData = encodeURIComponent(JSON.stringify(pallet));
+    const link = `http://192.168.1.87:3000/nhap-hang/scan?data=${palletData}`;
+    return `http://localhost:8000/nhaphang/pallets/qr/?data=${encodeURIComponent(link)}`;
+  };
 
-  const qrString = JSON.stringify(qrData)
+  const handleCheckboxChange = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
 
-  // Tạo QR code SVG đơn giản (trong thực tế nên dùng thư viện như qrcode.js)
-  const generateQRCodeSVG = (data, size) => {
-    // Đây là một QR code giả lập đơn giản
-    // Trong thực tế, bạn nên sử dụng thư viện như 'qrcode' hoặc 'qrcode-generator'
-    const gridSize = 25
-    const cellSize = size / gridSize
-
-    let svg = `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">`
-
-    // Tạo pattern QR code giả lập
-    for (let i = 0; i < gridSize; i++) {
-      for (let j = 0; j < gridSize; j++) {
-        // Tạo pattern dựa trên hash của data và vị trí
-        const hash = (data.charCodeAt((i * gridSize + j) % data.length) + i + j) % 2
-        if (hash === 1) {
-          svg += `<rect x="${j * cellSize}" y="${i * cellSize}" width="${cellSize}" height="${cellSize}" fill="black"/>`
-        }
-      }
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedIds(pallets.map((p) => p.id));
+    } else {
+      setSelectedIds([]);
     }
+  };
 
-    svg += "</svg>"
-    return svg
+  const handleCreateQR = () => {
+    setShowQRForm(true);
+  };
+
+  const selectedPallets = pallets.filter((p) => selectedIds.includes(p.id));
+
+  // Bước 1: Chọn pallet
+  if (!showQRForm) {
+    return (
+      <div>
+        <h4>Chọn pallet muốn tạo QR</h4>
+        <div style={{ marginBottom: 16 }}>
+          <label>
+            <input
+              type="checkbox"
+              checked={selectedIds.length === pallets.length && pallets.length > 0}
+              onChange={handleSelectAll}
+            />{" "}
+            Chọn tất cả
+          </label>
+        </div>
+        <div style={{ maxHeight: 200, overflowY: "auto", marginBottom: 24, border: "1px solid #eee", padding: 8 }}>
+          {pallets.map((pallet) => (
+            <label key={pallet.id} style={{ display: "block", marginBottom: 4 }}>
+              <input
+                type="checkbox"
+                checked={selectedIds.includes(pallet.id)}
+                onChange={() => handleCheckboxChange(pallet.id)}
+              />{" "}
+              {pallet.ma_pallet} - {pallet.ten_san_pham}
+            </label>
+          ))}
+        </div>
+        <button
+          className="btn btn-primary"
+          disabled={selectedIds.length === 0}
+          onClick={handleCreateQR}
+        >
+          Tạo QR
+        </button>
+      </div>
+    );
   }
 
-  const handlePrint = () => {
-    const printWindow = window.open("", "_blank")
-    const qrSVG = generateQRCodeSVG(qrString, 300)
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>QR Code - ${pallet.palletCode}</title>
-          <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              text-align: center; 
-              padding: 20px;
-            }
-            .qr-container {
-              border: 2px solid #00FF33;
-              padding: 20px;
-              display: inline-block;
-              border-radius: 10px;
-            }
-            .pallet-info {
-              margin-top: 15px;
-              font-size: 14px;
-            }
-            .pallet-code {
-              font-size: 18px;
-              font-weight: bold;
-              color: #00FF33;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="qr-container">
-            ${qrSVG}
-            <div class="pallet-info">
-              <div class="pallet-code">${pallet.palletCode}</div>
-              <div>${pallet.productName}</div>
-              <div>${pallet.quantity} ${pallet.unit} - ${pallet.location}</div>
-              <div>HSD: ${new Date(pallet.expiryDate).toLocaleDateString("vi-VN")}</div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `)
-    printWindow.document.close()
-    printWindow.print()
-  }
-
-  const handleDownload = () => {
-    const qrSVG = generateQRCodeSVG(qrString, 400)
-    const blob = new Blob([qrSVG], { type: "image/svg+xml" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `QR_${pallet.palletCode}.svg`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const handleCopyData = () => {
-    navigator.clipboard.writeText(qrString)
-    alert("Đã copy dữ liệu QR code!")
-  }
-
+  // Bước 2: Hiển thị QR các pallet đã chọn
   return (
-    <div className="qr-generator">
-      <div className="qr-preview">
-        <div className="qr-container">
+    <div>
+      <h4>Danh sách QR Pallet đã chọn</h4>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: "24px",
+        }}
+      >
+        {selectedPallets.map((pallet) => (
           <div
-            ref={qrRef}
-            className="qr-code"
-            dangerouslySetInnerHTML={{
-              __html: generateQRCodeSVG(qrString, qrSize),
+            key={pallet.id}
+            style={{
+              border: "1px solid #ccc",
+              padding: "16px",
+              textAlign: "center",
+              background: "#fff",
             }}
-          />
-          <div className="qr-info">
-            <div className="pallet-code">{pallet.palletCode}</div>
-            <div className="product-name">{pallet.productName}</div>
-            <div className="quantity">
-              {pallet.quantity} {pallet.unit}
+          >
+            <div>
+              <img
+                src={getQrUrl(pallet)}
+                alt={`QR ${pallet.ma_pallet}`}
+                style={{ width: 180, height: 180 }}
+              />
             </div>
-            <div className="location">Vị trí: {pallet.location}</div>
-            <div className="expiry">HSD: {new Date(pallet.expiryDate).toLocaleDateString("vi-VN")}</div>
+            <div style={{ marginTop: 8 }}>
+              <strong>{pallet.ma_pallet}</strong>
+              <div>{pallet.ten_san_pham}</div>
+            </div>
           </div>
-        </div>
+        ))}
       </div>
-
-      <div className="qr-controls">
-        <div className="size-control">
-          <label>Kích thước QR:</label>
-          <input
-            type="range"
-            min="150"
-            max="300"
-            value={qrSize}
-            onChange={(e) => setQrSize(Number.parseInt(e.target.value))}
-          />
-          <span>{qrSize}px</span>
-        </div>
-
-        <div className="qr-data">
-          <h4>Dữ liệu QR Code:</h4>
-          <textarea className="form-input" rows="4" value={qrString} readOnly />
-        </div>
-      </div>
-
-      <div className="qr-actions">
-        <button className="btn btn-secondary" onClick={onClose}>
-          Đóng
-        </button>
-        <button className="btn btn-info" onClick={handleCopyData}>
-          <Copy size={16} />
-          Copy dữ liệu
-        </button>
-        <button className="btn btn-success" onClick={handleDownload}>
-          <Download size={16} />
-          Tải xuống
-        </button>
-        <button className="btn btn-primary" onClick={handlePrint}>
-          <Printer size={16} />
-          In QR Code
-        </button>
-      </div>
+      <button
+        style={{ marginTop: 32 }}
+        onClick={() => window.print()}
+        className="btn btn-primary"
+      >
+        In QR
+      </button>
     </div>
-  )
-}
+  );
+};
 
-export default InQRPallet
+export default InQRPallet;
