@@ -9,20 +9,20 @@ const Header = () => {
           <Menu size={20} />
         </button>
         <div className="logo">
-        <img src= "./logothado.png" alt="Logo" className="logo-icon" />
+        <img src= "/logothado.png" alt="Logo" className="logo-icon" />
           {/* <span className="logo-text">THADOSOFT</span> */}
           
         </div>
       </div>
       <div className="header-center">
-        <h1 className="system-title">Quản lý kho</h1>
+        <h1 className="system-title">Để anh Hoà đặt tên "Cháy lên anh ơi!"</h1>
       </div>
       <div className="header-left">
         {/* <button className="menu-toggle">
           <Menu size={20} />
         </button> */}
         <div className="logo">
-        <img src= "./logoclever.png" alt="Logo" className="logo-icon" />
+        <img src= "/logoclever.png" alt="Logo" className="logo-icon" />
         </div>
       </div>
        {/* <div className="header-right">

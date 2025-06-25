@@ -1,156 +1,209 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Plus, Search, Filter, Package, QrCode, Eye, Edit, Trash2 } from "lucide-react"
-import Modal from "../../components/common/Modal"
-import ThemPallet from "./ThemPallet"
-import ChiTietPallet from "./ChiTietPallet"
-import InQRPallet from "./InQRPallet"
-import "./NhapHang.css"
+import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Plus,
+  Search,
+  Filter,
+  Package,
+  QrCode,
+  Eye,
+  Edit,
+  Trash2,
+  PlusCircle,
+} from "lucide-react";
+import Modal from "../../components/common/Modal";
+import ThemPallet from "./ThemPallet";
+import SuaPallet from "./SuaPallet";
+import ChiTietPallet from "./ChiTietPallet";
+import InQRPallet from "./InQRPallet";
+//import InQRPallet from "./InQRPallet"
+import "./NhapHang.css";
+import { ThemTinhTrangHang } from "./ThemSuaTinhTrangHang";
 
 const NhapHang = () => {
-  const [activeTab, setActiveTab] = useState("danh-sach")
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [showQRModal, setShowQRModal] = useState(false)
-  const [showDetailModal, setShowDetailModal] = useState(false)
-  const [selectedPallet, setSelectedPallet] = useState(null)
-  const [searchTerm, setSearchTerm] = useState("")
+  const [activeTab, setActiveTab] = useState("danh-sach");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedPallet, setSelectedPallet] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showAddTinhTrangModal, setShowAddTinhTrangModal] = useState(false);
+  const [selectedPalletForTinhTrang, setSelectedPalletForTinhTrang] = useState(null);
+  const [tinhTrangHienTai, setTinhTrangHienTai] = useState(null);
+  const [showPrintQRModal, setShowPrintQRModal] = useState(false);
 
-  // Mock data cho pallets
-  const [pallets, setPallets] = useState([
-    {
-      id: 1,
-      palletCode: "P-2024-001",
-      productCode: "AP001",
-      productName: "Táo Fuji",
-      quantity: 150,
-      unit: "kg",
-      importDate: "2024-01-15T08:30:00",
-      productionDate: "2024-01-10",
-      expiryDate: "2024-02-10",
-      qualityCheckDate: "2024-01-15",
-      location: "A-01-01",
-      supplier: "Nông trại Xanh",
-      status: "active",
-      qualityStatus: "passed",
-      notes: "Chất lượng tốt, không có khuyết tật",
-    },
-    {
-      id: 2,
-      palletCode: "P-2024-002",
-      productCode: "OR002",
-      productName: "Cam Sành",
-      quantity: 200,
-      unit: "kg",
-      importDate: "2024-01-15T09:15:00",
-      productionDate: "2024-01-12",
-      expiryDate: "2024-02-12",
-      qualityCheckDate: "2024-01-15",
-      location: "A-01-02",
-      supplier: "Vườn Trái Cây Sạch",
-      status: "active",
-      qualityStatus: "passed",
-      notes: "Cam tươi, màu sắc đẹp",
-    },
-    {
-      id: 3,
-      palletCode: "P-2024-003",
-      productCode: "BN003",
-      productName: "Chuối Tiêu",
-      quantity: 80,
-      unit: "kg",
-      importDate: "2024-01-14T10:00:00",
-      productionDate: "2024-01-08",
-      expiryDate: "2024-01-22",
-      qualityCheckDate: "2024-01-14",
-      location: "B-02-01",
-      supplier: "Hợp tác xã Nông dân",
-      status: "warning",
-      qualityStatus: "warning",
-      notes: "Sắp hết hạn, cần xuất sớm",
-    },
-  ])
+  const [pallets, setPallets] = useState([]);
 
-  // Tạo mã pallet tự động
-  const generatePalletCode = () => {
-    const year = new Date().getFullYear()
-    const existingCodes = pallets
-      .filter((p) => p.palletCode.startsWith(`P-${year}-`))
-      .map((p) => Number.parseInt(p.palletCode.split("-")[2]))
+  const fetchPallets = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(
+        "http://localhost:8000/nhaphang/pallets"
+      );
+      setPallets(response.data);
+      setError(null);
+    } catch (error) {
+      toast.error("Lỗi khi lấy dữ liệu pallet:", error);
+      setError("Không thể tải dữ liệu pallet. Vui lòng thử lại.");
+      setPallets([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const nextNumber = existingCodes.length > 0 ? Math.max(...existingCodes) + 1 : 1
-    return `P-${year}-${nextNumber.toString().padStart(3, "0")}`
-  }
+  const fetchTinhTrangHangByPalletId = async (palletId) => {
+    try {
+      const res = await axios.get(
+        `http://localhost:8000/quanlykho/tinhtranghang/?pallet=${palletId}`
+      );
+      return res.data;
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const handleTinhTrangClick = async (pallet) => {
+    setSelectedPalletForTinhTrang(pallet);
+    setTinhTrangHienTai(null); // reset trước
+    try {
+      const data = await fetchTinhTrangHangByPalletId(pallet.id);
+      // Giả sử API trả về mảng, lấy phần tử đầu tiên (hoặc sửa lại nếu trả về object)
+      if (data && data.length > 0) {
+        setTinhTrangHienTai(data[0]);
+      } else {
+        setTinhTrangHienTai(null);
+      }
+      setShowAddTinhTrangModal(true);
+    } catch (err) {
+      toast.error("Không lấy được tình trạng hàng!");
+      setShowAddTinhTrangModal(true); // vẫn cho thêm mới nếu lỗi
+    }
+  };
+
+  const loaded = useRef(false);
+  useEffect(() => {
+    if (loaded.current) return;
+    loaded.current = true;
+    fetchPallets();
+  }, []);
+
+  const getRemainPercent = (so_luong_con_lai, so_thung_ban_dau) => {
+    if (!so_thung_ban_dau || so_thung_ban_dau === 0) return 0;
+    return Math.round((so_luong_con_lai / so_thung_ban_dau) * 100);
+  };
 
   const handleAddPallet = (palletData) => {
     const newPallet = {
-      id: Date.now(),
-      palletCode: generatePalletCode(),
       ...palletData,
       status: "active",
       qualityStatus: "passed",
-    }
-    setPallets([...pallets, newPallet])
-    setShowAddModal(false)
-  }
+    };
+    setPallets((prev) => [...prev, newPallet]);
+    setShowAddModal(false);
+  };
 
   const handleViewDetail = (pallet) => {
-    setSelectedPallet(pallet)
-    setShowDetailModal(true)
-  }
+    setSelectedPallet(pallet);
+    setShowDetailModal(true);
+  };
+
+  const handleUpdatePallet = (updatedPallet) => {
+    const newPallet = {
+      ...updatedPallet,
+      status: "active",
+      qualityStatus: "passed",
+    };
+
+    setPallets((prev) =>
+      prev.map((p) => (p.id === newPallet.id ? newPallet : p))
+    );
+
+    setShowUpdateModal(false);
+  };
+
+  const handleEditClick = (pallet) => {
+    setSelectedPallet(pallet);
+    setShowUpdateModal(true);
+  };
 
   const handlePrintQR = (pallet) => {
-    setSelectedPallet(pallet)
-    setShowQRModal(true)
-  }
+    setSelectedPallet(pallet);
+    setShowQRModal(true);
+  };
 
-  const handleDeletePallet = (palletId) => {
+  const handleDeletePallet = async (palletId) => {
     if (window.confirm("Bạn có chắc chắn muốn xóa pallet này?")) {
-      setPallets(pallets.filter((p) => p.id !== palletId))
+      try {
+        await axios.delete(
+          `http://localhost:8000/nhaphang/pallets/${palletId}/`
+        );
+        setPallets(pallets.filter((p) => p.id !== palletId)); // Cập nhật giao diện
+        toast.success("Đã xóa pallet thành công.");
+      } catch (error) {
+        console.error("Lỗi khi xóa pallet:", error);
+        toast.error("Xóa pallet thất bại.");
+      }
     }
-  }
+  };
 
   const filteredPallets = pallets.filter(
     (pallet) =>
-      pallet.palletCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pallet.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pallet.supplier.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+      pallet.ma_pallet.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pallet.ten_san_pham.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pallet.ma_vi_tri_kho.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pallet.ten_nha_cung_cap.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const displayedPallets = searchTerm.trim() === "" ? pallets : filteredPallets;
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      active: { label: "Hoạt động", class: "badge-success" },
-      warning: { label: "Cảnh báo", class: "badge-warning" },
-      expired: { label: "Hết hạn", class: "badge-danger" },
-      inactive: { label: "Không hoạt động", class: "badge-secondary" },
-    }
-    const config = statusConfig[status] || statusConfig.active
-    return <span className={`badge ${config.class}`}>{config.label}</span>
-  }
+      Mới: { label: "Mới", class: "badge-success" },
+      Đã_mở: { label: "Đã mở", class: "badge-warning" },
+      Trống: { label: "Trống", class: "badge-danger" },
+    };
+    const config = statusConfig[status] || statusConfig.active;
+    return <span className={`badge ${config.class}`}>{config.label}</span>;
+  };
 
   const getQualityBadge = (qualityStatus) => {
     const qualityConfig = {
       passed: { label: "Đạt", class: "badge-success" },
       warning: { label: "Cảnh báo", class: "badge-warning" },
       failed: { label: "Không đạt", class: "badge-danger" },
-    }
-    const config = qualityConfig[qualityStatus] || qualityConfig.passed
-    return <span className={`badge ${config.class}`}>{config.label}</span>
-  }
+    };
+    const config = qualityConfig[qualityStatus] || qualityConfig.passed;
+    return <span className={`badge ${config.class}`}>{config.label}</span>;
+  };
 
   return (
     <div className="nhap-hang">
+      <ToastContainer position="top-right" autoClose={2000} />
+      {/* Header */}
       <div className="page-header">
         <div>
           <h1 className="page-title">Quản lý nhập hàng</h1>
-          <p className="page-subtitle">Theo dõi và quản lý pallet hoa quả từ nhà cung cấp</p>
+          <p className="page-subtitle">
+            Theo dõi và quản lý pallet hoa quả từ nhà cung cấp
+          </p>
         </div>
         <div className="header-actions">
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowAddModal(true)}
+          >
             <Plus size={16} />
             Tạo Pallet mới
           </button>
         </div>
+        
       </div>
 
       {/* Tabs Navigation */}
@@ -183,18 +236,27 @@ const NhapHang = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <button className="btn btn-secondary">
-          <Filter size={16} />
-          Bộ lọc
-        </button>
+        <div className="header-actions">
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowPrintQRModal(true)}
+          >
+            <Plus size={16} />
+            Tạo QR
+          </button>
+        </div>
       </div>
 
       {/* Tab Content */}
       {activeTab === "danh-sach" && (
         <div className="pallet-table card">
           <div className="card-header">
-            <h3 className="card-title">Danh sách Pallet ({filteredPallets.length})</h3>
-            <p className="card-subtitle">Quản lý thông tin chi tiết các pallet hoa quả</p>
+            <h3 className="card-title">
+              Danh sách Pallet ({displayedPallets.length})
+            </h3>
+            <p className="card-subtitle">
+              Quản lý thông tin chi tiết các pallet hoa quả
+            </p>
           </div>
           <div className="card-body">
             <div className="table-responsive">
@@ -205,35 +267,53 @@ const NhapHang = () => {
                     <th>Sản phẩm</th>
                     <th>Số lượng</th>
                     <th>Vị trí</th>
-                    <th>Ngày nhập</th>
-                    <th>Hạn sử dụng</th>
+                    <th className="date-col">Hạn sử dụng</th>
                     <th>Trạng thái</th>
-                    <th>Chất lượng</th>
                     <th>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPallets.map((pallet) => (
+                  {displayedPallets.map((pallet) => (
                     <tr key={pallet.id}>
                       <td>
-                        <span className="pallet-code">{pallet.palletCode}</span>
+                        <span className="pallet-code">{pallet.ma_pallet}</span>
                       </td>
                       <td>
                         <div className="product-info">
-                          <span className="product-name">{pallet.productName}</span>
-                          <span className="product-code">({pallet.productCode})</span>
+                          <span className="product-name">
+                            {pallet.ten_san_pham}
+                          </span>
                         </div>
                       </td>
-                      <td className="quantity-cell">
-                        {pallet.quantity} {pallet.unit}
+                      <td>
+                        <div>
+                          <div className="progress-bar-container">
+                            <div
+                              className="progress-bar-fill"
+                              style={{
+                                width: `${getRemainPercent(
+                                  pallet.so_thung_con_lai,
+                                  pallet.so_thung_ban_dau
+                                )}%`,
+                              }}
+                            ></div>
+                          </div>
+                          <div className="progress-bar-label">
+                            {pallet.so_thung_con_lai}/{pallet.so_thung_ban_dau}
+                          </div>
+                        </div>
                       </td>
                       <td>
-                        <span className="location-badge">{pallet.location}</span>
+                        <span className="location-badge">
+                          {pallet.ma_vi_tri_kho}
+                        </span>
                       </td>
-                      <td className="date-cell">{new Date(pallet.importDate).toLocaleDateString("vi-VN")}</td>
-                      <td className="date-cell">{new Date(pallet.expiryDate).toLocaleDateString("vi-VN")}</td>
-                      <td>{getStatusBadge(pallet.status)}</td>
-                      <td>{getQualityBadge(pallet.qualityStatus)}</td>
+                      <td className="date-cell date-col">
+                        {new Date(pallet.han_su_dung).toLocaleDateString(
+                          "vi-VN"
+                        )}
+                      </td>
+                      <td>{getStatusBadge(pallet.trang_thai)}</td>
                       <td>
                         <div className="action-buttons">
                           <button
@@ -241,20 +321,28 @@ const NhapHang = () => {
                             onClick={() => handleViewDetail(pallet)}
                             title="Xem chi tiết"
                           >
-                            <Eye size={14} />
+                            <Eye size={16} />
                           </button>
-                          <button className="btn-action qr" onClick={() => handlePrintQR(pallet)} title="In QR Code">
-                            <QrCode size={14} />
+                          <button
+                            className="btn-action status"
+                            onClick={() => handleTinhTrangClick(pallet)}
+                            title="Tình trạng hàng"
+                          >
+                            <PlusCircle size={16} />
                           </button>
-                          <button className="btn-action edit" title="Chỉnh sửa">
-                            <Edit size={14} />
+                          <button
+                            className="btn-action edit"
+                            title="Chỉnh sửa"
+                            onClick={() => handleEditClick(pallet)}
+                          >
+                            <Edit size={16} />
                           </button>
                           <button
                             className="btn-action delete"
                             onClick={() => handleDeletePallet(pallet.id)}
                             title="Xóa"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={16} />
                           </button>
                         </div>
                       </td>
@@ -268,23 +356,85 @@ const NhapHang = () => {
       )}
 
       {/* Modals */}
-      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Tạo Pallet mới">
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        title="Tạo Pallet mới"
+      >
         <ThemPallet
-          onSubmit={handleAddPallet}
+          onSuccess={(newPallet) => {
+            handleAddPallet(newPallet);
+            setShowAddModal(false);
+          }}
           onCancel={() => setShowAddModal(false)}
-          nextPalletCode={generatePalletCode()}
         />
       </Modal>
 
-      <Modal isOpen={showDetailModal} onClose={() => setShowDetailModal(false)} title="Chi tiết Pallet">
-        {selectedPallet && <ChiTietPallet pallet={selectedPallet} onClose={() => setShowDetailModal(false)} />}
+      <Modal
+        isOpen={showUpdateModal}
+        onClose={() => setShowUpdateModal(false)}
+        title="Chỉnh sửa thông tin Pallet"
+      >
+        <SuaPallet
+          pallet={selectedPallet}
+          onSuccess={(updatedPallet) => {
+            handleUpdatePallet(updatedPallet);
+            setShowUpdateModal(false);
+          }}
+          onCancel={() => setShowUpdateModal(false)}
+        />
       </Modal>
 
-      <Modal isOpen={showQRModal} onClose={() => setShowQRModal(false)} title="In QR Code">
-        {selectedPallet && <InQRPallet pallet={selectedPallet} onClose={() => setShowQRModal(false)} />}
+      <Modal
+        isOpen={showDetailModal}
+        onClose={() => setShowDetailModal(false)}
+        title="Chi tiết Pallet"
+      >
+        {selectedPallet && (
+          <ChiTietPallet
+            pallet={selectedPallet}
+            onUpdate={fetchPallets}
+            onClose={() => setShowDetailModal(false)}
+          />
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={showPrintQRModal}
+        onClose={() => setShowPrintQRModal(false)}
+        title="In QR cho các Pallet"
+      >
+        <InQRPallet pallets={displayedPallets} />
+      </Modal>
+
+      <Modal
+        isOpen={showAddTinhTrangModal}
+        onClose={() => setShowAddTinhTrangModal(false)}
+        title={
+          tinhTrangHienTai
+            ? "Sửa tình trạng hàng"
+            : "Thêm tình trạng hàng cho Pallet"
+        }
+      >
+        {selectedPalletForTinhTrang && (
+          <ThemTinhTrangHang
+            palletId={selectedPalletForTinhTrang.id}
+            tinhTrangHienTai={tinhTrangHienTai}
+            onSuccess={() => {
+              setShowAddTinhTrangModal(false);
+              setSelectedPalletForTinhTrang(null);
+              setTinhTrangHienTai(null);
+              fetchPallets();
+            }}
+            onCancel={() => {
+              setShowAddTinhTrangModal(false);
+              setTinhTrangHienTai(null);
+            }}
+          />
+        )}
       </Modal>
     </div>
-  )
-}
+  );
+};
 
-export default NhapHang
+export default NhapHang;

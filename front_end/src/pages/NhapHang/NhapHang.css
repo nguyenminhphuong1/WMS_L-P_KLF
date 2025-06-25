@@ -21,6 +21,29 @@
   font-size: 16px;
 }
 
+.progress-bar-container {
+  background: #eee;
+  border-radius: 8px;
+  height: 16px;
+  width: 100%;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  background: #4caf50;
+  height: 100%;
+  transition: width 0.3s;
+}
+.progress-bar-label {
+  font-size: 12px;
+  margin-top: 2px;
+  text-align: right;
+}
+
+.status {
+  background: #ebcef7; /* xanh lá nhạt, dễ nhìn */
+}
+
 .header-actions {
   display: flex;
   gap: 12px;
@@ -49,13 +72,13 @@
 }
 
 .tab-btn:hover {
-  color: #219C9C;
+  color: #00ff33;
   background-color: #f8fff9;
 }
 
 .tab-btn.active {
-  color: #219C9C;
-  border-bottom-color: #219C9C;
+  color: #00ff33;
+  border-bottom-color: #00ff33;
   background-color: #f8fff9;
 }
 
@@ -101,12 +124,20 @@
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+}
+
+th.date-col, td.date-cell {
+  width: 120px;
+  min-width: 100px;
+  max-width: 140px;
+  white-space: nowrap;
 }
 
 .table th,
 .table td {
-  padding: 12px 16px;
-  text-align: left;
+  padding: 12px 6px;
+  text-align: center;
   border-bottom: 1px solid #f1f3f4;
 }
 
@@ -121,10 +152,22 @@
   background-color: #f8fff9;
 }
 
+.table tbody {
+  max-height: 320px; /* Chiều cao mong muốn */
+  overflow-y: auto;
+  width: 100%;
+}
+
+.table thead, .table tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
 /* Table Cell Styles */
 .pallet-code {
   font-weight: 600;
-  color: #219C9C;
+  color: #00ff33;
   font-family: monospace;
 }
 
@@ -147,17 +190,17 @@
 .quantity-cell {
   text-align: right;
   font-weight: 600;
-  color: #219C9C;
+  color: #00ff33;
 }
 
 .location-badge {
   background-color: #e6ffe9;
-  color: #219C9C;
+  color: #00ff33;
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  border: 1px solid #219C9C;
+  border: 1px solid #00ff33;
 }
 
 .date-cell {
@@ -179,7 +222,7 @@
 
 .badge-success {
   background-color: #d4edda;
-  color: #155757;
+  color: #155724;
   border: 1px solid #c3e6cb;
 }
 
@@ -208,7 +251,7 @@
 }
 
 .btn-action {
-  padding: 6px 8px;
+  padding: 12px 16px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -309,7 +352,7 @@
 
 .form-input:focus {
   outline: none;
-  border-color: #219C9C;
+  border-color: #00ff33;
   box-shadow: 0 0 0 3px rgba(0, 255, 51, 0.1);
 }
 
@@ -351,7 +394,7 @@
 .pallet-info h3 {
   font-size: 20px;
   font-weight: 700;
-  color: #219C9C;
+  color: #00ff33;
   margin-bottom: 8px;
 }
 
@@ -428,7 +471,7 @@
   background-color: #f8f9fa;
   padding: 12px;
   border-radius: 6px;
-  border-left: 4px solid #219C9C;
+  border-left: 4px solid #00ff33;
   font-size: 14px;
   color: #333333;
   line-height: 1.5;
@@ -455,7 +498,7 @@
 .qr-container {
   display: inline-block;
   padding: 20px;
-  border: 2px solid #219C9C;
+  border: 2px solid #00ff33;
   border-radius: 12px;
   background-color: #ffffff;
 }
@@ -471,7 +514,7 @@
 .qr-info .pallet-code {
   font-size: 16px;
   font-weight: 700;
-  color: #219C9C;
+  color: #00ff33;
   margin-bottom: 4px;
 }
 
@@ -542,12 +585,12 @@
 }
 
 .btn-primary {
-  background-color: #219C9C;
+  background-color: #00ff33;
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: #00b4cc;
+  background-color: #00cc29;
   transform: translateY(-1px);
 }
 
@@ -561,12 +604,12 @@
 }
 
 .btn-success {
-  background-color: #28a7a1;
+  background-color: #28a745;
   color: white;
 }
 
 .btn-success:hover {
-  background-color: #218883;
+  background-color: #218838;
 }
 
 .btn-info {
@@ -619,7 +662,6 @@
 }
 
 @media (max-width: 576px) {
-
   .table th,
   .table td {
     padding: 8px 12px;

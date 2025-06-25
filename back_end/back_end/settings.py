@@ -18,8 +18,6 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 
-from config_secret import DATABASES, SECRET_KEY
-
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -30,12 +28,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', '').lower() == 'true'
+DEBUG = True
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+ALLOWED_HOSTS = ["*"]
+
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 
 # Application definition
@@ -56,7 +55,7 @@ INSTALLED_APPS = [
     "QuanLyKho",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', '').lower() == 'true'
+CORS_ALLOW_ALL_ORIGINS = True
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -88,11 +87,9 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "back_end.wsgi.application"
-STATIC_ROOT = '/app/static'
+
 
 # Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -106,6 +103,8 @@ DATABASES = {
         }
     }
 }
+# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

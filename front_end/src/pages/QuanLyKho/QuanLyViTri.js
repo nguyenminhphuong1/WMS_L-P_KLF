@@ -1,202 +1,185 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Plus, Edit, Wrench, BarChart3, Map, Search, CheckCircle, AlertTriangle } from "lucide-react"
-import Modal from "../../components/common/Modal"
+import { useParams } from "react-router-dom";
+import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { useState, useEffect } from "react";
+import { Plus, ArrowLeft, Search, AlertTriangle } from "lucide-react";
+import Modal from "../../components/common/Modal";
+import { Link } from "react-router-dom";
+
+const DEFAULT_FORM_VI_TRI = {
+  ma_vi_tri: "",
+  khu_vuc: "",
+  hang: "",
+  cot: "",
+  loai_vi_tri: "Pallet",
+  tai_trong_max: "",
+  chieu_cao_max: "",
+  trang_thai: "Trống",
+  uu_tien_fifo: false,
+  gan_cua_ra: false,
+  vi_tri_cach_ly: false,
+  ghi_chu: "",
+};
 
 const QuanLyViTri = () => {
-  const [areas, setAreas] = useState([
-    {
-      id: 1,
-      name: "Khu vực A",
-      description: "Bia & Nước ngọt",
-      size: "5x3",
-      totalPositions: 15,
-      usedPositions: 12,
-      status: "active",
-      positions: [
-        { id: "A1", status: "empty" },
-        { id: "A2", status: "occupied" },
-        { id: "A3", status: "empty" },
-        { id: "A4", status: "occupied" },
-        { id: "A5", status: "maintenance" },
-        { id: "B1", status: "occupied" },
-        { id: "B2", status: "occupied" },
-        { id: "B3", status: "occupied" },
-        { id: "B4", status: "empty" },
-        { id: "B5", status: "occupied" },
-        { id: "C1", status: "occupied" },
-        { id: "C2", status: "occupied" },
-        { id: "C3", status: "empty" },
-        { id: "C4", status: "occupied" },
-        { id: "C5", status: "occupied" },
-      ],
-    },
-    {
-      id: 2,
-      name: "Khu vực B",
-      description: "Nước suối",
-      size: "4x4",
-      totalPositions: 16,
-      usedPositions: 8,
-      status: "maintenance",
-      positions: [
-        { id: "A1", status: "occupied" },
-        { id: "A2", status: "empty" },
-        { id: "A3", status: "occupied" },
-        { id: "A4", status: "empty" },
-        { id: "B1", status: "occupied" },
-        { id: "B2", status: "empty" },
-        { id: "B3", status: "occupied" },
-        { id: "B4", status: "empty" },
-        { id: "C1", status: "occupied" },
-        { id: "C2", status: "empty" },
-        { id: "C3", status: "occupied" },
-        { id: "C4", status: "empty" },
-        { id: "D1", status: "occupied" },
-        { id: "D2", status: "empty" },
-        { id: "D3", status: "occupied" },
-        { id: "D4", status: "empty" },
-      ],
-    },
-    {
-      id: 3,
-      name: "Khu vực C",
-      description: "Đồ uống có cồn",
-      size: "6x2",
-      totalPositions: 12,
-      usedPositions: 10,
-      status: "active",
-      positions: [
-        { id: "A1", status: "occupied" },
-        { id: "A2", status: "occupied" },
-        { id: "A3", status: "occupied" },
-        { id: "A4", status: "occupied" },
-        { id: "A5", status: "empty" },
-        { id: "A6", status: "occupied" },
-        { id: "B1", status: "occupied" },
-        { id: "B2", status: "occupied" },
-        { id: "B3", status: "occupied" },
-        { id: "B4", status: "occupied" },
-        { id: "B5", status: "empty" },
-        { id: "B6", status: "occupied" },
-      ],
-    },
-  ])
+  const { areaId } = useParams();
+  const [area, setArea] = useState(null);
 
-  const [showAddAreaModal, setShowAddAreaModal] = useState(false)
-  const [showAddPositionModal, setShowAddPositionModal] = useState(false)
-  const [selectedArea, setSelectedArea] = useState(null)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterStatus, setFilterStatus] = useState("all")
-  const [showMapModal, setShowMapModal] = useState(false)
-  const [mapData, setMapData] = useState([])
+  // State quản lý vị trí
+  const [positionsByArea, setPositionsByArea] = useState({}); // { [areaId]: [positions] }
+  const [formPosition, setFormPosition] = useState(DEFAULT_FORM_VI_TRI);
+  const [showPositionModal, setShowPositionModal] = useState(false);
+  const [showAdvancedAddModal, setShowAdvancedAddModal] = useState(false);
 
-  // Thêm state cho modal thêm vị trí nâng cao
-  const [showAdvancedAddModal, setShowAdvancedAddModal] = useState(false)
+  // State filter/search
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
 
+  // Lấy thông tin khu vực
+  useEffect(() => {
+    axios
+      .get(`http://localhost:8000/quanlykho/khuvuc/${areaId}/`)
+      .then((res) => setArea(res.data))
+      .catch(() => toast.error("Không thể tải thông tin khu vực!"));
+  }, [areaId]);
+
+  // Fetch vị trí cho từng khu vực khi danh sách khu vực thay đổi
+  useEffect(() => {
+    fetchPositionsByAreaId();
+  }, [areaId]);
+
+  // API: Lấy danh sách vị trí theo khu vực
+  const fetchPositionsByAreaId = async () => {
+    try {
+      const res = await axios.get(
+        `http://localhost:8000/quanlykho/vitrikho/?khu_vuc=${areaId}`
+      );
+      setPositionsByArea((prev) => ({ ...prev, [areaId]: res.data }));
+    } catch (err) {
+      toast.error("Không thể tải danh sách vị trí!");
+    }
+  };
+
+  // Xử lý filter/search khu vực
+  const positions = positionsByArea[areaId] || [];
+  const filteredPositions = positions.filter((position) => {
+    const matchesSearch = position.ma_vi_tri
+      ?.toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesFilter = !filterStatus || position.trang_thai === filterStatus;
+    return matchesSearch && matchesFilter;
+  });
+
+  const handleDeletePosition = async (position) => {
+    if (!window.confirm("Bạn có chắc muốn xóa vị trí này?")) return;
+    try {
+      await axios.delete(
+        `http://localhost:8000/quanlykho/vitrikho/${position.id}/`
+      );
+      toast.success("Xóa vị trí thành công!");
+      setShowPositionModal(false);
+      setFormPosition(DEFAULT_FORM_VI_TRI);
+      fetchPositionsByAreaId(formPosition.khu_vuc);
+    } catch (err) {
+      toast.error("Không thể xóa vị trí!");
+    }
+  };
+
+
+  // Xử lý submit form vị trí
+  const handleSubmitPosition = async (e) => {
+    e.preventDefault();
+    try {
+      const data = { ...formPosition, khu_vuc: area.id };
+      if (formPosition.id) {
+        await axios.put(
+          `http://localhost:8000/quanlykho/vitrikho/${formPosition.id}/`,
+          data
+        );
+        toast.success("Cập nhật vị trí thành công!");
+      } else {
+        await axios.post("http://localhost:8000/quanlykho/vitrikho/", data);
+        toast.success("Thêm vị trí thành công!");
+      }
+      setShowPositionModal(false);
+      setFormPosition(DEFAULT_FORM_VI_TRI);
+      fetchPositionsByAreaId(formPosition.khu_vuc);
+    } catch (err) {
+      toast.error("Lỗi! Vị trí đã tồn tại!");
+    }
+  };
+
+  // Xử lý submit form nâng cao
+  const handleSubmitAdvancedPosition = async (e) => {
+    e.preventDefault();
+    // TODO: Validate và gọi API tạo nhiều vị trí
+    setShowAdvancedAddModal(false);
+  };
+
+  // Helper: Màu trạng thái vị trí
   const getStatusColor = (status) => {
     switch (status) {
-      case "empty":
-        return "#10b981"
-      case "occupied":
-        return "#ef4444"
-      case "maintenance":
-        return "#f59e0b"
-      case "reserved":
-        return "#8b5cf6"
+      case "Trống":
+        return "#10b981";
+      case "Có_hàng":
+        return "#3b82f6";
+      case "Bảo_trì":
+        return "#f59e0b";
+      case "Hỏng":
+        return "#ef4444";
       default:
-        return "#6b7280"
+        return "#6b7280";
     }
-  }
+  };
 
+  // Helper: Text trạng thái vị trí
   const getStatusText = (status) => {
     switch (status) {
-      case "empty":
-        return "Trống"
-      case "occupied":
-        return "Đã sử dụng"
-      case "maintenance":
-        return "Bảo trì"
-      case "reserved":
-        return "Đã đặt"
+      case "Trống":
+        return "Trống";
+      case "Có_hàng":
+        return "Có hàng";
+      case "Bảo_trì":
+        return "Bảo trì";
+      case "Hỏng":
+        return "Hỏng";
       default:
-        return "Không xác định"
+        return "Trống";
     }
-  }
+  };
 
-  const getAreaStatusColor = (status) => {
-    switch (status) {
-      case "active":
-        return "#10b981"
-      case "maintenance":
-        return "#f59e0b"
-      case "inactive":
-        return "#6b7280"
-      default:
-        return "#6b7280"
-    }
-  }
-
-  const getAreaStatusText = (status) => {
-    switch (status) {
-      case "active":
-        return "Hoạt động"
-      case "maintenance":
-        return "Bảo trì"
-      case "inactive":
-        return "Không hoạt động"
-      default:
-        return "Không xác định"
-    }
-  }
-
-  const filteredAreas = areas.filter((area) => {
-    const matchesSearch =
-      area.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      area.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesFilter = filterStatus === "all" || area.status === filterStatus
-    return matchesSearch && matchesFilter
-  })
-
-  const handleAddArea = () => {
-    setShowAddAreaModal(true)
-  }
-
-  const handleEditArea = (area) => {
-    setSelectedArea(area)
-    setShowAddAreaModal(true)
-  }
-
-  const handleMaintenanceArea = (areaId) => {
-    setAreas((prev) =>
-      prev.map((area) =>
-        area.id === areaId ? { ...area, status: area.status === "maintenance" ? "active" : "maintenance" } : area,
-      ),
-    )
-  }
-
-  const handleViewMap = async () => {
-    try {
-      const response = await fetch('http://127.0.0.1:8000/quanlykho/vitrikho/xem_map/')
-      if (!response.ok) {
-        throw new Error('Network response was not ok')
-      }
-      const result = await response.json()
-      if (result.map_data) {
-        setMapData(result.map_data)
-        setShowMapModal(true)
-      } else {
-        throw new Error('Invalid data format')
-      }
-    } catch (error) {
-      console.error('Error fetching map data:', error)
-      alert('Không thể tải dữ liệu bản đồ. Vui lòng thử lại sau.')
-    }
-  }
+  if (!area) return <div>Đang tải khu vực...</div>;
 
   return (
     <div className="quan-ly-vi-tri">
+      <ToastContainer position="top-right" autoClose={2000} />
+      {/* Header */}
+      <div className="page-header">
+        <div className="header-content">
+          <div className="header-info">
+            <h1 className="page-title">
+              <Link to="/quan-ly-kho/khu-vuc" className="back-button">
+                <ArrowLeft size={20} />
+              </Link>
+              Khu vực: <span style={{color: "#3b82f6", marginLeft: 4, marginRight: 4, fontWeight: 600}}>
+                {area.ma_khu_vuc}
+              </span>
+              - {area.ten_khu_vuc}
+            </h1>
+            <p className="page-subtitle">
+              Quản lý vị trí
+            </p>
+          </div>
+          <div className="header-actions">
+            <span className="status-badge status-active">
+              Hệ thống hoạt động
+            </span>
+          </div>
+        </div>
+      </div>
       <div className="page-header">
         <div className="header-actions">
           <div className="search-filter">
@@ -204,320 +187,325 @@ const QuanLyViTri = () => {
               <Search size={20} />
               <input
                 type="text"
-                placeholder="Tìm kiếm khu vực..."
+                placeholder="Tìm kiếm vị trí..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <select className="filter-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-              <option value="all">Tất cả trạng thái</option>
-              <option value="active">Hoạt động</option>
-              <option value="maintenance">Bảo trì</option>
-              <option value="inactive">Không hoạt động</option>
+            <select
+              className="filter-select"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="">Tất cả trạng thái</option>
+              <option value="Có_hàng">Có hàng</option>
+              <option value="Bảo_trì">Bảo trì</option>
+              <option value="Trống">Trống</option>
+              <option value="Hỏng">Hỏng</option>
             </select>
           </div>
           <div className="action-buttons">
-            <button className="btn btn-outline" onClick={() => setShowAdvancedAddModal(true)}>
-              <Plus size={20} />
-              Thêm vị trí nâng cao
-            </button>
-            <button className="btn btn-primary" onClick={handleAddArea}>
-              <Plus size={20} />
-              Thêm khu vực
-            </button>
-            <button className="btn btn-secondary" onClick={handleViewMap}>
-              <Map size={20} />
-              Xem map
+            <button
+              className="btn btn-outline"
+              onClick={handleSubmitAdvancedPosition}
+            >
+              <Plus size={20} /> Thêm vị trí nâng cao
             </button>
           </div>
         </div>
       </div>
 
+      {/* Danh sách khu vực */}
       <div className="areas-container">
-        {filteredAreas.map((area) => (
+        {area && (
           <div key={area.id} className="area-card">
-            <div className="area-header">
-              <div className="area-info">
-                <h3 className="area-name">
-                  {area.name} - {area.description}
-                </h3>
-                <div className="area-details">
-                  <span className="area-size">
-                    Kích thước: {area.size} ({area.totalPositions} vị trí)
-                  </span>
-                  <span className="area-status" style={{ color: getAreaStatusColor(area.status) }}>
-                    Trạng thái: {getAreaStatusText(area.status)}
-                  </span>
-                  <span className="area-usage">
-                    Sử dụng: {area.usedPositions}/{area.totalPositions} (
-                    {Math.round((area.usedPositions / area.totalPositions) * 100)}%)
-                  </span>
-                </div>
-              </div>
-              <div className="area-actions">
-                <button className="btn btn-sm btn-outline" onClick={() => handleEditArea(area)}>
-                  <Edit size={16} />
-                  Sửa
-                </button>
-                <button
-                  className={`btn btn-sm ${area.status === "maintenance" ? "btn-success" : "btn-warning"}`}
-                  onClick={() => handleMaintenanceArea(area.id)}
-                >
-                  {area.status === "maintenance" ? (
-                    <>
-                      <CheckCircle size={16} />
-                      Hoàn thành BT
-                    </>
-                  ) : (
-                    <>
-                      <Wrench size={16} />
-                      Bảo trì
-                    </>
-                  )}
-                </button>
-                <button className="btn btn-sm btn-info">
-                  <BarChart3 size={16} />
-                  Thống kê
-                </button>
-              </div>
-            </div>
-
-            <div className="positions-grid">
-              {area.positions.map((position) => (
-                <div
-                  key={position.id}
-                  className="position-cell"
-                  style={{
-                    backgroundColor: getStatusColor(position.status),
-                    color: "white",
-                  }}
-                  title={`${position.id} - ${getStatusText(position.status)}`}
-                >
-                  {position.id}
-                  {position.status === "maintenance" && <AlertTriangle size={12} className="position-warning" />}
+            {/* Hiển thị grid vị trí */}
+            <div
+              className="positions-grid"
+              style={{
+                gridTemplateColumns: `repeat(${area.kich_thuoc_cot}, 52px)`, // 52px là ví dụ, có thể tăng/giảm
+                gridAutoRows: "auto",
+              }}
+            >
+              {Array.from({ length: area.kich_thuoc_cot }, (_, colIdx) => (
+                <div className="positions-row" key={colIdx}>
+                  {Array.from({ length: area.kich_thuoc_hang }, (_, rowIdx) => {
+                    // Tìm vị trí có hàng/cột tương ứng
+                    const position = filteredPositions.find(
+                      (p) =>
+                        Number(p.hang) === rowIdx + 1 &&
+                        Number(p.cot) === colIdx + 1
+                    );
+                    return (
+                      <div
+                        key={colIdx}
+                        className="position-cell"
+                        style={{
+                          backgroundColor: position
+                            ? getStatusColor(position.trang_thai)
+                            : "#e5e7eb",
+                          color: position ? "white" : "#6b7280",
+                          border: "1px solid #ccc",
+                          cursor: "pointer"
+                        }}
+                        title={
+                          position
+                            ? `${position.ma_vi_tri} - ${getStatusText(position.trang_thai)}`
+                            : `Hàng ${rowIdx + 1}, Cột ${colIdx + 1}`
+                        }
+                        onClick={() => {
+                          if (position) {
+                            setFormPosition({ ...position });
+                          } else {
+                            setFormPosition({
+                              ...DEFAULT_FORM_VI_TRI,
+                              khu_vuc: area.id,
+                              hang: rowIdx + 1,
+                              cot: colIdx + 1,
+                            });
+                          }
+                          setShowPositionModal(true);
+                        }}
+                      >
+                        {position ? position.ma_vi_tri : "+"}
+                        {position && position.trang_thai === "Hỏng" && (
+                          <AlertTriangle
+                            size={12}
+                            className="position-warning"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
 
+            {/* Chú thích */}
             <div className="area-legend">
               <div className="legend-item">
-                <div className="legend-color" style={{ backgroundColor: "#10b981" }}></div>
+                <div
+                  className="legend-color"
+                  style={{ backgroundColor: "#10b981" }}
+                ></div>
                 <span>Trống</span>
               </div>
               <div className="legend-item">
-                <div className="legend-color" style={{ backgroundColor: "#ef4444" }}></div>
-                <span>Đã sử dụng</span>
+                <div
+                  className="legend-color"
+                  style={{ backgroundColor: "#3b82f6" }}
+                ></div>
+                <span>Có hàng</span>
               </div>
               <div className="legend-item">
-                <div className="legend-color" style={{ backgroundColor: "#f59e0b" }}></div>
+                <div
+                  className="legend-color"
+                  style={{ backgroundColor: "#f59e0b" }}
+                ></div>
                 <span>Bảo trì</span>
+              </div>
+              <div className="legend-item">
+                <div
+                  className="legend-color"
+                  style={{ backgroundColor: "#ef4444" }}
+                ></div>
+                <span>Hỏng</span>
               </div>
             </div>
           </div>
-        ))}
+        )}
       </div>
 
-      {/* Modal thêm/sửa khu vực */}
+      {/* Modal Thêm Vị Trí */}
       <Modal
-        isOpen={showAddAreaModal}
-        onClose={() => {
-          setShowAddAreaModal(false)
-          setSelectedArea(null)
-        }}
-        title={selectedArea ? "Sửa khu vực" : "Thêm khu vực mới"}
+        isOpen={showPositionModal}
+        onClose={() => setShowPositionModal(false)}
+        title={formPosition.id ? "Sửa vị trí" : "Thêm vị trí mới"}
       >
-        <form className="area-form">
-          <div className="form-group">
-            <label>Tên khu vực</label>
-            <input type="text" placeholder="Nhập tên khu vực" defaultValue={selectedArea?.name || ""} />
-          </div>
-          <div className="form-group">
-            <label>Mô tả</label>
-            <input type="text" placeholder="Nhập mô tả khu vực" defaultValue={selectedArea?.description || ""} />
-          </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Chiều rộng</label>
-              <input type="number" placeholder="5" min="1" max="20" />
-            </div>
-            <div className="form-group">
-              <label>Chiều dài</label>
-              <input type="number" placeholder="3" min="1" max="20" />
-            </div>
-          </div>
-          <div className="form-group">
-            <label>Trạng thái</label>
-            <select defaultValue={selectedArea?.status || "active"}>
-              <option value="active">Hoạt động</option>
-              <option value="maintenance">Bảo trì</option>
-              <option value="inactive">Không hoạt động</option>
-            </select>
-          </div>
-          <div className="form-actions">
-            <button type="button" className="btn btn-outline" onClick={() => setShowAddAreaModal(false)}>
-              Hủy
-            </button>
-            <button type="submit" className="btn btn-primary">
-              {selectedArea ? "Cập nhật" : "Thêm mới"}
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Modal thêm vị trí */}
-      <Modal isOpen={showAddPositionModal} onClose={() => setShowAddPositionModal(false)} title="Thêm vị trí mới">
-        <form className="position-form">
-          <div className="form-group">
-            <label>Chọn khu vực</label>
-            <select>
-              <option value="">Chọn khu vực</option>
-              {areas.map((area) => (
-                <option key={area.id} value={area.id}>
-                  {area.name} - {area.description}
-                </option>
-              ))}
-            </select>
+        <form className="position-form" onSubmit={handleSubmitPosition}>
+          <div>
+            Khu vực: {area.ma_khu_vuc} - {area.ten_khu_vuc}
           </div>
           <div className="form-group">
             <label>Mã vị trí</label>
-            <input type="text" placeholder="Ví dụ: A1, B2, C3..." />
+            <input
+              type="text"
+              value={formPosition.ma_vi_tri}
+              onChange={(e) =>
+                setFormPosition({ ...formPosition, ma_vi_tri: e.target.value })
+              }
+              required
+            />
           </div>
           <div className="form-group">
+            <label>Hàng</label>
+            <input
+              type="number"
+              value={formPosition.hang}
+              onChange={(e) =>
+                setFormPosition({ ...formPosition, hang: e.target.value })
+              }
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Cột</label>
+            <input
+              type="number"
+              value={formPosition.cot}
+              onChange={(e) =>
+                setFormPosition({ ...formPosition, cot: e.target.value })
+              }
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Tải trọng max</label>
+            <input
+              type="number"
+              value={formPosition.tai_trong_max}
+              onChange={(e) =>
+                setFormPosition({
+                  ...formPosition,
+                  tai_trong_max: e.target.value,
+                })
+              }
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Chiều cao max</label>
+            <input
+              type="number"
+              value={formPosition.chieu_cao_max}
+              onChange={(e) =>
+                setFormPosition({
+                  ...formPosition,
+                  chieu_cao_max: e.target.value,
+                })
+              }
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Loại vị trí *</label>
+            <select
+              value={formPosition.loai_vi_tri}
+              onChange={(e) =>
+                setFormPosition({
+                  ...formPosition,
+                  loai_vi_tri: e.target.value,
+                })
+              }
+              required
+            >
+              <option value="Pallet">Pallet</option>
+              <option value="Carton">Carton</option>
+              <option value="Bulk">Bulk</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Ưu tiên fifo</label>
+            <input
+              type="checkbox"
+              value={formPosition.uu_tien_fifo}
+              onChange={(e) =>
+                setFormPosition({
+                  ...formPosition,
+                  uu_tien_fifo: e.target.checked,
+                })
+              }
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Gần cửa ra</label>
+            <input
+              type="checkbox"
+              value={formPosition.gan_cua_ra}
+              onChange={(e) =>
+                setFormPosition({
+                  ...formPosition,
+                  gan_cua_ra: e.target.checked,
+                })
+              }
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Vị trí cách ly</label>
+            <input
+              type="checkbox"
+              value={formPosition.vi_tri_cach_ly}
+              onChange={(e) =>
+                setFormPosition({
+                  ...formPosition,
+                  vi_tri_cach_ly: e.target.checked,
+                })
+              }
+            />
+          </div>
+
+          <div className="form-group">
             <label>Trạng thái ban đầu</label>
-            <select>
-              <option value="empty">Trống</option>
-              <option value="maintenance">Bảo trì</option>
+            <select
+              value={formPosition.trang_thai}
+              onChange={(e) =>
+                setFormPosition({ ...formPosition, trang_thai: e.target.value })
+              }
+            >
+              <option value="Trống">Trống</option>
+              <option value="Có_hàng">Có hàng</option>
+              <option value="Bảo_trì">Bảo trì</option>
+              <option value="Hỏng">Hỏng</option>
             </select>
           </div>
           <div className="form-actions">
-            <button type="button" className="btn btn-outline" onClick={() => setShowAddPositionModal(false)}>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => setShowPositionModal(false)}
+            >
               Hủy
             </button>
             <button type="submit" className="btn btn-primary">
-              Thêm vị trí
+              {formPosition.id ? "Sửa" : "Thêm vị trí"}
             </button>
+
+            {formPosition.id && (
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => handleDeletePosition(formPosition)}
+              >
+                Xóa
+              </button>
+            )}
           </div>
         </form>
       </Modal>
 
-      {/* Modal thêm vị trí nâng cao */}
+      {/* Modal Thêm Vị Trí Nâng Cao */}
       <Modal
         isOpen={showAdvancedAddModal}
         onClose={() => setShowAdvancedAddModal(false)}
         title="Thêm vị trí kho mới"
         size="large"
       >
-        <form className="advanced-position-form">
-          <div className="form-row">
-            <div className="form-group">
-              <label>Khu vực</label>
-              <select>
-                <option value="">Chọn khu vực</option>
-                <option value="A">Khu vực A</option>
-                <option value="B">Khu vực B</option>
-                <option value="C">Khu vực C</option>
-                <option value="D">Khu vực D</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Loại vị trí</label>
-              <select>
-                <option value="pallet">Pallet</option>
-                <option value="carton">Carton</option>
-                <option value="bulk">Bulk</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="form-section">
-            <h4>Phạm vi vị trí</h4>
-            <div className="position-range">
-              <div className="range-group">
-                <label>Từ vị trí:</label>
-                <div className="position-inputs">
-                  <select className="zone-select">
-                    <option value="A">A</option>
-                    <option value="B">B</option>
-                    <option value="C">C</option>
-                  </select>
-                  <input type="number" min="1" max="99" placeholder="1" className="number-input" />
-                </div>
-              </div>
-              <div className="range-group">
-                <label>Đến vị trí:</label>
-                <div className="position-inputs">
-                  <select className="zone-select">
-                    <option value="A">A</option>
-                    <option value="B">B</option>
-                    <option value="C">C</option>
-                  </select>
-                  <input type="number" min="1" max="99" placeholder="5" className="number-input" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="form-section">
-            <h4>Thông số kỹ thuật</h4>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Tải trọng tối đa (kg)</label>
-                <input type="number" placeholder="1000" />
-              </div>
-              <div className="form-group">
-                <label>Chiều cao tối đa (cm)</label>
-                <input type="number" placeholder="200" />
-              </div>
-            </div>
-          </div>
-
-          <div className="form-section">
-            <h4>Điều kiện môi trường</h4>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Nhiệt độ yêu cầu (°C)</label>
-                <div className="range-inputs">
-                  <input type="number" placeholder="15" />
-                  <span>-</span>
-                  <input type="number" placeholder="25" />
-                </div>
-              </div>
-              <div className="form-group">
-                <label>Độ ẩm yêu cầu (%)</label>
-                <div className="range-inputs">
-                  <input type="number" placeholder="40" />
-                  <span>-</span>
-                  <input type="number" placeholder="70" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="form-section">
-            <h4>Thuộc tính đặc biệt</h4>
-            <div className="checkbox-group">
-              <div className="checkbox-item">
-                <input type="checkbox" id="priority" />
-                <label htmlFor="priority">Vị trí ưu tiên (FIFO)</label>
-              </div>
-              <div className="checkbox-item">
-                <input type="checkbox" id="isolation" />
-                <label htmlFor="isolation">Vị trí cách ly (hàng đặc biệt)</label>
-              </div>
-              <div className="checkbox-item">
-                <input type="checkbox" id="nearExit" />
-                <label htmlFor="nearExit">Gần cửa ra (xuất nhanh)</label>
-              </div>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>Ghi chú</label>
-            <textarea rows="3" placeholder="Ghi chú thêm về vị trí..."></textarea>
-          </div>
-
+        <form
+          className="advanced-position-form"
+          onSubmit={handleSubmitAdvancedPosition}
+        >
+          {/* ...giữ nguyên UI nâng cao như cũ... */}
+          {/* Bạn có thể truyền state và onChange tương tự như các form trên */}
           <div className="form-actions">
-            <button type="button" className="btn btn-outline" onClick={() => setShowAdvancedAddModal(false)}>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => setShowAdvancedAddModal(false)}
+            >
               ❌ Hủy
             </button>
             <button type="button" className="btn btn-secondary">
@@ -529,72 +517,8 @@ const QuanLyViTri = () => {
           </div>
         </form>
       </Modal>
-
-      {/* Modal xem map */}
-      <Modal
-        isOpen={showMapModal}
-        onClose={() => setShowMapModal(false)}
-        title="Bản đồ kho"
-        size="large"
-      >
-        {mapData && mapData.length > 0 ? (
-          <>
-            <div className="map-container">
-              {mapData.map((khuVuc) => (
-                <div key={khuVuc.ma_khu_vuc} className="map-area">
-                  <div className="map-area-header">
-                    <h3>{khuVuc.ten_khu_vuc}</h3>
-                    <span className={`status-badge ${khuVuc.trang_thai.toLowerCase()}`}>
-                      {khuVuc.trang_thai}
-                    </span>
-                  </div>
-                  <div
-                    className="map-grid"
-                    style={{
-                      gridTemplateColumns: `repeat(${khuVuc.kich_thuoc_cot}, 1fr)`,
-                      gridTemplateRows: `repeat(${khuVuc.kich_thuoc_hang}, 1fr)`
-                    }}
-                  >
-                    {khuVuc.vi_tri.map((viTri) => (
-                      <div
-                        key={viTri.ma_vi_tri}
-                        className={`map-cell ${viTri.trang_thai.toLowerCase()}`}
-                        title={`${viTri.ma_vi_tri} - ${viTri.loai_vi_tri}`}
-                      >
-                        {viTri.ma_vi_tri}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="map-legend">
-              <div className="legend-item">
-                <div className="legend-color empty"></div>
-                <span>Trống</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-color occupied"></div>
-                <span>Đã sử dụng</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-color maintenance"></div>
-                <span>Bảo trì</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-color reserved"></div>
-                <span>Đã đặt</span>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="no-data-message">
-            Không có dữ liệu bản đồ
-          </div>
-        )}
-      </Modal>
     </div>
-  )
-}
+  );
+};
 
-export default QuanLyViTri
+export default QuanLyViTri;

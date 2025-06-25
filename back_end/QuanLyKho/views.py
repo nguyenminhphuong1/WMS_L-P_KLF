@@ -12,11 +12,15 @@ from NhapHang.models import Pallets
 # Create your views here.
 class KhuVucViewSet(viewsets.ModelViewSet):
     queryset = KhuVuc.objects.all()
-    serializer_class = KhuVucSerializer     
+    serializer_class = KhuVucSerializer   
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['trang_thai']  
 
 class ViTriKhoViewSet(viewsets.ModelViewSet):
     queryset = ViTriKho.objects.all()
     serializer_class = ViTriKhoSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['khu_vuc']
 
     @action(detail=False, methods=['get'], url_path='xem_map')
     def xem_map(self, request):
@@ -34,7 +38,7 @@ class ViTriKhoViewSet(viewsets.ModelViewSet):
             tong_vi_tri = ViTriKho.objects.count()
             tong_pallets = Pallets.objects.count()
             trong = ViTriKho.objects.filter(trang_thai='Trống').count()
-            day = ViTriKho.objects.filter(trang_thai='Có hàng').count()
+            day = ViTriKho.objects.filter(trang_thai='Có_hàng').count()
             if tong_vi_tri > 0:
                 ty_le_su_dung = f'{(day / tong_vi_tri) * 100:.2f}%'
             else:
@@ -45,12 +49,13 @@ class ViTriKhoViewSet(viewsets.ModelViewSet):
             else:
                 hieu_suat = "0.00%"
 
-            can_bao_tri = ViTriKho.objects.filter(trang_thai='Bảo trì').count()
+            can_bao_tri = ViTriKho.objects.filter(trang_thai='Bảo_trì').count()
 
             today = date.today()
             target_date = today + timedelta(days=3)
             pallets_sap_het_han = Pallets.objects.filter(han_su_dung = target_date).count()
-            khu_vuc_can_bao_tri = KhuVuc.objects.filter(trang_thai = 'Bảo trì').values_list('ma_khu_vuc', flat=True)
+            khu_vuc_can_bao_tri = KhuVuc.objects.filter(trang_thai = 'Bảo_trì').values_list('ma_khu_vuc', flat=True)
+            vi_tri_can_bao_tri = ViTriKho.objects.filter(trang_thai = 'Bảo_trì').values_list('ma_vi_tri', flat=True)
 
             pallets_can_kiem_tra_cl = Pallets.objects.filter(ngay_kiem_tra_cl = today).count()
 
@@ -65,6 +70,7 @@ class ViTriKhoViewSet(viewsets.ModelViewSet):
                 "hieu_suat": hieu_suat,
                 "pallets_sap_het_han": pallets_sap_het_han,
                 "khu_vuc_can_bao_tri": list(khu_vuc_can_bao_tri),
+                "vi_tri_can_bao_tri": list(vi_tri_can_bao_tri),
                 "tinh_trang": hieu_suat,
                 "pallets_can_kiem_tra_cl": pallets_can_kiem_tra_cl
             }
@@ -185,7 +191,7 @@ class TinhTrangHangViewSet(viewsets.ModelViewSet):
     queryset = TinhTrangHang.objects.all()
     serializer_class = TinhTrangHangSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['loai_tinh_trang', 'created_at']
+    filterset_fields = ['pallet', 'loai_tinh_trang', 'created_at']
 
     @action(detail=False, methods=['get'], url_path='dashboard')
     def dashboard(self, request):

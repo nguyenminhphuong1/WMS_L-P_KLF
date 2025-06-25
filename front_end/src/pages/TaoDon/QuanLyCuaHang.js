@@ -1,266 +1,190 @@
 "use client"
 
-import { useState } from "react"
+import axios from 'axios';
+import { ToastContainer, toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
+import { useState, useEffect, useRef } from "react"
 import { Plus, Search, Edit, Trash2, MapPin, Phone, Store } from "lucide-react"
 import Modal from "../../components/common/Modal"
 
-const QuanLyCuaHang = () => {
+const DEFAULT_FORM = {
+  ma_cua_hang: "",
+  ten_cua_hang: "",
+  so_dien_thoai: "",
+  dia_chi: "",
+  trang_thai: "Hoạt_động",
+  created_at: ""
+};
+
+const QuanLyCuaHang = ({ onSuccess }) => {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedArea, setSelectedArea] = useState("")
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedStore, setSelectedStore] = useState(null)
-
-  // Mock data cửa hàng
-  const [stores, setStores] = useState([
-    {
-      id: 1,
-      name: "Siêu thị BigC Thăng Long",
-      address: "222 Trần Duy Hưng, Cầu Giấy, Hà Nội",
-      phone: "024-3555-1234",
-      area: "Hà Nội",
-      type: "Siêu thị",
-      status: "active",
-      createdDate: "2024-01-10",
-    },
-    {
-      id: 2,
-      name: "Cửa hàng Trái cây Sạch ABC",
-      address: "45 Nguyễn Văn Cừ, Quận 1, TP.HCM",
-      phone: "028-3888-5678",
-      area: "TP.HCM",
-      type: "Cửa hàng",
-      status: "active",
-      createdDate: "2024-01-12",
-    },
-    {
-      id: 3,
-      name: "Lotte Mart Đà Nẵng",
-      address: "6 Nại Nam, Hòa Cường Bắc, Hải Châu, Đà Nẵng",
-      phone: "0236-3999-888",
-      area: "Đà Nẵng",
-      type: "Siêu thị",
-      status: "active",
-      createdDate: "2024-01-15",
-    },
-    {
-      id: 4,
-      name: "Cửa hàng Organic Fresh",
-      address: "123 Lê Lợi, Quận Ngô Quyền, Hải Phòng",
-      phone: "0225-3777-999",
-      area: "Hải Phòng",
-      type: "Cửa hàng",
-      status: "inactive",
-      createdDate: "2024-01-08",
-    },
-  ])
-
-  const areas = ["Hà Nội", "TP.HCM", "Đà Nẵng", "Hải Phòng", "Cần Thơ", "Khác"]
-  const storeTypes = ["Siêu thị", "Cửa hàng", "Đại lý", "Nhà phân phối"]
-
-  const [formData, setFormData] = useState({
-    name: "",
-    address: "",
-    phone: "",
-    area: "",
-    type: "",
-    status: "active",
-  })
-
   const [errors, setErrors] = useState({})
+  const [stores, setStores] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [formData, setFormData] = useState(DEFAULT_FORM)
+  const [dropdownData, setDropdownData] = useState({ ds_vi_tri: [] });
 
+  // Fetch stores
+  const fetchCuaHang = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/taodon/cuahang/');
+      setStores(response.data);
+      setErrors({});
+    } catch (error) {
+      console.error("Lỗi khi lấy dữ liệu cửa hàng:", error);
+      setErrors({ fetch: "Không thể tải dữ liệu cửa hàng. Vui lòng thử lại." });
+      setStores([]);
+    }
+  };
+
+  // Fetch areas
+  useEffect(() => {
+    axios.get("http://localhost:8000/taodon/chitietvitricuahang/khu_vuc_phu_song/")
+      .then((response) => {
+        setAreas(response.data.ds_khu_vuc || []);
+      })
+      .catch((error) => {
+        console.error("Lỗi gọi API:", error);
+      });
+  }, []);
+
+  // Fetch dropdown vị trí
+  useEffect(() => {
+    axios.get('http://localhost:8000/taodon/cuahang/danh_sach_chi_tiet_vi_tri/')
+      .then((res) => {
+        setDropdownData(res.data || { ds_vi_tri: [] });
+      })
+      .catch((err) => {
+        console.error('Lỗi khi tải dữ liệu dropdown:', err);
+      });
+  }, []);
+
+  // Fetch stores on mount
+  useEffect(() => {
+    fetchCuaHang();
+  }, []);
+
+  // Filter stores
   const filteredStores = stores.filter((store) => {
     const matchesSearch =
-      store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      store.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      store.phone.includes(searchTerm)
-    const matchesArea = selectedArea === "" || store.area === selectedArea
-    return matchesSearch && matchesArea
-  })
+      store.ten_cua_hang?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      store.dia_chi_chi_tiet?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      store.so_dien_thoai?.includes(searchTerm);
+    const matchesArea = !selectedArea || String(store.dia_chi) === selectedArea;
+    return matchesSearch && matchesArea;
+  });
 
+  // Validate form
   const validateForm = () => {
-    const newErrors = {}
-    if (!formData.name.trim()) newErrors.name = "Tên cửa hàng không được để trống"
-    if (!formData.address.trim()) newErrors.address = "Địa chỉ không được để trống"
-    if (!formData.phone.trim()) newErrors.phone = "Số điện thoại không được để trống"
-    if (!formData.area) newErrors.area = "Vui lòng chọn khu vực"
-    // if (!formData.type) newErrors.type = "Vui lòng chọn loại cửa hàng"
-
-    // Validate phone number
-    const phoneRegex = /^[0-9]{10,11}$/
-    if (formData.phone && !phoneRegex.test(formData.phone.replace(/[-\s]/g, ""))) {
-      newErrors.phone = "Số điện thoại không hợp lệ"
+    const newErrors = {};
+    if (!formData.ten_cua_hang.trim()) newErrors.ten_cua_hang = "Tên cửa hàng không được để trống";
+    if (!formData.dia_chi) newErrors.dia_chi = "Địa chỉ không được để trống";
+    if (!formData.so_dien_thoai.trim()) newErrors.so_dien_thoai = "Số điện thoại không được để trống";
+    const phoneRegex = /^[0-9]{10,11}$/;
+    if (formData.so_dien_thoai && !phoneRegex.test(formData.so_dien_thoai.replace(/[-\s]/g, ""))) {
+      newErrors.so_dien_thoai = "Số điện thoại không hợp lệ";
     }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+  // Handle add
+  const handleAdd = () => {
+    setFormData(DEFAULT_FORM);
+    setErrors({});
+    setShowAddModal(true);
+  };
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (validateForm()) {
-      if (showEditModal && selectedStore) {
-        // Update store
-        setStores(stores.map((store) => (store.id === selectedStore.id ? { ...store, ...formData } : store)))
-        setShowEditModal(false)
-      } else {
-        // Add new store
-        const newStore = {
-          id: Date.now(),
-          ...formData,
-          createdDate: new Date().toISOString().slice(0, 10),
-        }
-        setStores([...stores, newStore])
-        setShowAddModal(false)
-      }
-      resetForm()
+  // Handle submit add
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    const payload = {
+      ma_cua_hang: formData.ma_cua_hang,
+      ten_cua_hang: formData.ten_cua_hang,
+      so_dien_thoai: formData.so_dien_thoai,
+      dia_chi: formData.dia_chi,
+      trang_thai: formData.trang_thai || "Hoạt_động",
+    };
+    try {
+      const res = await axios.post('http://localhost:8000/taodon/cuahang/', payload);
+      alert('Tạo cửa hàng thành công!');
+      fetchCuaHang();
+      setShowAddModal(false);
+      setFormData(DEFAULT_FORM);
+      setErrors({});
+      if (onSuccess) onSuccess(res.data);
+    } catch (err) {
+      alert('Tạo cửa hàng thất bại! ' + (err.response?.data?.detail || err.message));
     }
-  }
+  };
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      address: "",
-      phone: "",
-      area: "",
-      type: "",
-      status: "active",
-    })
-    setErrors({})
-    setSelectedStore(null)
-  }
-
+  // Handle edit
   const handleEdit = (store) => {
-    setSelectedStore(store)
+    setSelectedStore(store);
     setFormData({
-      name: store.name,
-      address: store.address,
-      phone: store.phone,
-      area: store.area,
-      type: store.type,
-      status: store.status,
-    })
-    setShowEditModal(true)
-  }
+      ma_cua_hang: store.ma_cua_hang || "",
+      ten_cua_hang: store.ten_cua_hang || "",
+      so_dien_thoai: store.so_dien_thoai || "",
+      dia_chi: store.dia_chi || store.dia_chi_chi_tiet || "",
+      trang_thai: store.trang_thai || "Hoạt_động",
+      created_at: store.created_at || ""
+    });
+    setErrors({});
+    setShowEditModal(true);
+  };
 
-  const handleDelete = (storeId) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa cửa hàng này?")) {
-      setStores(stores.filter((store) => store.id !== storeId))
+  // Handle submit edit
+  const handleSubmitEdit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    const payload = {
+      ma_cua_hang: formData.ma_cua_hang,
+      ten_cua_hang: formData.ten_cua_hang,
+      so_dien_thoai: formData.so_dien_thoai,
+      dia_chi: formData.dia_chi,
+      trang_thai: formData.trang_thai || "Hoạt_động",
+    };
+    try {
+      await axios.put(`http://localhost:8000/taodon/cuahang/${selectedStore.id}/`, payload);
+      alert('Cập nhật cửa hàng thành công!');
+      fetchCuaHang();
+      setShowEditModal(false);
+      setFormData(DEFAULT_FORM);
+      setErrors({});
+    } catch (err) {
+      alert('Cập nhật cửa hàng thất bại! ' + (err.response?.data?.detail || err.message));
     }
-  }
+  };
 
-  const getStatusBadge = (status) => {
-    return (
-      <span className={`badge ${status === "active" ? "badge-success" : "badge-secondary"}`}>
-        {status === "active" ? "Hoạt động" : "Tạm dừng"}
-      </span>
-    )
-  }
+  // Handle delete
+  const handleDelete = async (storeId) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa cửa hàng này?")) {
+      try {
+        await axios.delete(`http://localhost:8000/taodon/cuahang/${storeId}/`);
+        fetchCuaHang();
+      } catch (err) {
+        alert('Xóa cửa hàng thất bại! ' + (err.response?.data?.detail || err.message));
+      }
+    }
+  };
 
-  const StoreForm = () => (
-    <form onSubmit={handleSubmit} className="store-form">
-      <div className="form-row">
-        <div className="form-group">
-          <label className="form-label">Tên cửa hàng *</label>
-          <input
-            type="text"
-            className={`form-input ${errors.name ? "error" : ""}`}
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="Nhập tên cửa hàng"
-          />
-          {errors.name && <span className="error-text">{errors.name}</span>}
-        </div>
-        {/* <div className="form-group">
-          <label className="form-label">Loại cửa hàng *</label>
-          <select
-            className={`form-input ${errors.type ? "error" : ""}`}
-            value={formData.type}
-            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-          >
-            <option value="">Chọn loại cửa hàng</option>
-            {storeTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-          {errors.type && <span className="error-text">{errors.type}</span>}
-        </div> */}
-      </div>
+  // Handle change
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
-      <div className="form-group">
-        <label className="form-label">Địa chỉ *</label>
-        <input
-          type="text"
-          className={`form-input ${errors.address ? "error" : ""}`}
-          value={formData.address}
-          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-          placeholder="Nhập địa chỉ đầy đủ"
-        />
-        {errors.address && <span className="error-text">{errors.address}</span>}
-      </div>
-
-      <div className="form-row">
-        <div className="form-group">
-          <label className="form-label">Số điện thoại *</label>
-          <input
-            type="tel"
-            className={`form-input ${errors.phone ? "error" : ""}`}
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            placeholder="Nhập số điện thoại"
-          />
-          {errors.phone && <span className="error-text">{errors.phone}</span>}
-        </div>
-        <div className="form-group">
-          <label className="form-label">Khu vực *</label>
-          <select
-            className={`form-input ${errors.area ? "error" : ""}`}
-            value={formData.area}
-            onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-          >
-            <option value="">Chọn khu vực</option>
-            {areas.map((area) => (
-              <option key={area} value={area}>
-                {area}
-              </option>
-            ))}
-          </select>
-          {errors.area && <span className="error-text">{errors.area}</span>}
-        </div>
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">Trạng thái</label>
-        <select
-          className="form-input"
-          value={formData.status}
-          onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-        >
-          <option value="active">Hoạt động</option>
-          <option value="inactive">Tạm dừng</option>
-        </select>
-      </div>
-
-      <div className="form-actions">
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={() => {
-            setShowAddModal(false)
-            setShowEditModal(false)
-            resetForm()
-          }}
-        >
-          Hủy
-        </button>
-        <button type="submit" className="btn btn-primary">
-          {showEditModal ? "Cập nhật" : "Thêm cửa hàng"}
-        </button>
-      </div>
-    </form>
-  )
+  // Badge
+  const getStatusBadge = (status) => (
+    <span className={`badge ${status === "Hoạt_động" ? "badge-success" : "badge-secondary"}`}>
+      {status === "Hoạt_động" ? "Hoạt động" : "Tạm dừng"}
+    </span>
+  );
 
   return (
     <div className="quan-ly-cua-hang">
@@ -269,7 +193,7 @@ const QuanLyCuaHang = () => {
           <h2 className="section-title">Quản lý Cửa hàng</h2>
           <p className="section-subtitle">Quản lý thông tin các cửa hàng và đối tác</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+        <button className="btn btn-primary" onClick={handleAdd}>
           <Plus size={16} />
           Thêm cửa hàng
         </button>
@@ -294,9 +218,9 @@ const QuanLyCuaHang = () => {
           style={{ maxWidth: "200px" }}
         >
           <option value="">Tất cả khu vực</option>
-          {areas.map((area) => (
-            <option key={area} value={area}>
-              {area}
+          {areas.map((khuVuc) => (
+            <option key={khuVuc.id} value={khuVuc.id}>
+              {khuVuc.label}
             </option>
           ))}
         </select>
@@ -309,7 +233,7 @@ const QuanLyCuaHang = () => {
             <Store size={24} style={{ color: "#00FF33" }} />
           </div>
           <div className="stat-info">
-            <div className="stat-value">{stores.filter((s) => s.status === "active").length}</div>
+            <div className="stat-value">{stores.filter((s) => s.trang_thai === "Hoạt_động").length}</div>
             <div className="stat-label">Cửa hàng hoạt động</div>
           </div>
         </div>
@@ -318,7 +242,7 @@ const QuanLyCuaHang = () => {
             <MapPin size={24} style={{ color: "#17a2b8" }} />
           </div>
           <div className="stat-info">
-            <div className="stat-value">{new Set(stores.map((s) => s.area)).size}</div>
+            <div className="stat-value">{areas.length}</div>
             <div className="stat-label">Khu vực phủ sóng</div>
           </div>
         </div>
@@ -343,11 +267,10 @@ const QuanLyCuaHang = () => {
             <table className="table">
               <thead>
                 <tr>
+                  <th>Mã cửa hàng</th>
                   <th>Tên cửa hàng</th>
-                  <th>Địa chỉ</th>
                   <th>SĐT</th>
-                  <th>Khu vực</th>
-                  {/* <th>Loại</th> */}
+                  <th>Địa chỉ</th>
                   <th>Trạng thái</th>
                   <th>Ngày tạo</th>
                   <th>Thao tác</th>
@@ -358,19 +281,16 @@ const QuanLyCuaHang = () => {
                   <tr key={store.id}>
                     <td>
                       <div className="store-info">
-                        <span className="store-name">{store.name}</span>
+                        <span className="store-name">{store.ma_cua_hang}</span>
                       </div>
                     </td>
-                    <td className="address-cell">{store.address}</td>
-                    <td className="phone-cell">{store.phone}</td>
+                    <td className="address-cell">{store.ten_cua_hang}</td>
+                    <td className="phone-cell">{store.so_dien_thoai}</td>
                     <td>
-                      <span className="area-badge">{store.area}</span>
+                      <span className="area-badge">{store.dia_chi_chi_tiet || store.dia_chi}</span>
                     </td>
-                    <td>
-                      <span className="type-badge">{store.type}</span>
-                    </td>
-                    <td>{getStatusBadge(store.status)}</td>
-                    <td className="date-cell">{new Date(store.createdDate).toLocaleDateString("vi-VN")}</td>
+                    <td>{getStatusBadge(store.trang_thai)}</td>
+                    <td className="date-cell">{store.created_at ? new Date(store.created_at).toLocaleDateString("vi-VN") : ""}</td>
                     <td>
                       <div className="action-buttons">
                         <button className="btn-action edit" onClick={() => handleEdit(store)} title="Chỉnh sửa">
@@ -391,14 +311,129 @@ const QuanLyCuaHang = () => {
 
       {/* Modals */}
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Thêm cửa hàng mới">
-        <StoreForm />
+        <StoreForm
+          formData={formData}
+          errors={errors}
+          onChange={handleChange}
+          onSubmit={handleSubmit}
+          onCancel={() => setShowAddModal(false)}
+          dropdownData={dropdownData}
+          showEditModal={false}
+        />
       </Modal>
 
       <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Chỉnh sửa cửa hàng">
-        <StoreForm />
+        <StoreForm
+          formData={formData}
+          errors={errors}
+          onChange={handleChange}
+          onSubmit={handleSubmitEdit}
+          onCancel={() => setShowEditModal(false)}
+          dropdownData={dropdownData}
+          showEditModal={true}
+        />
       </Modal>
     </div>
-  )
-}
+  );
+};
 
-export default QuanLyCuaHang
+const StoreForm = ({
+  formData,
+  errors,
+  onChange,
+  onSubmit,
+  onCancel,
+  dropdownData,
+  showEditModal
+}) => {
+  // Phòng ngừa lỗi nếu formData hoặc errors bị null
+  if (!formData) return null;
+  if (!errors || typeof errors !== "object") errors = {};
+
+  return (
+    <form onSubmit={onSubmit} className="store-form">
+      <div className="form-group">
+        <label className="form-label">Mã cửa hàng *</label>
+        <input
+          name="ma_cua_hang"
+          type="text"
+          className={`form-input ${errors.ma_cua_hang ? "error" : ""}`}
+          value={formData.ma_cua_hang}
+          onChange={onChange}
+          placeholder="Nhập mã cửa hàng"
+        />
+        {errors.ma_cua_hang && <span className="error-text">{errors.ma_cua_hang}</span>}
+      </div>
+
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Tên cửa hàng *</label>
+          <input
+            name="ten_cua_hang"
+            type="text"
+            className={`form-input ${errors.ten_cua_hang ? "error" : ""}`}
+            value={formData.ten_cua_hang}
+            onChange={onChange}
+            placeholder="Nhập tên cửa hàng"
+          />
+          {errors.ten_cua_hang && <span className="error-text">{errors.ten_cua_hang}</span>}
+        </div>
+        <div className="form-group">
+          <label className="form-label">Số điện thoại *</label>
+          <input
+            name="so_dien_thoai"
+            className={`form-input ${errors.so_dien_thoai ? "error" : ""}`}
+            value={formData.so_dien_thoai}
+            onChange={onChange}
+            placeholder="Nhập số điện thoại"
+          />
+          {errors.so_dien_thoai && <span className="error-text">{errors.so_dien_thoai}</span>}
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label className="form-label">Địa chỉ *</label>
+        <select
+          name="dia_chi"
+          className={`form-input ${errors.dia_chi ? "error" : ""}`}
+          value={formData.dia_chi}
+          onChange={onChange}
+        >
+          <option value="">-- Chọn vị trí --</option>
+          {dropdownData.ds_vi_tri.map((vt) => (
+            <option key={vt.id} value={vt.id}>{vt.label}</option>
+          ))}
+        </select>
+        {errors.dia_chi && <span className="error-text">{errors.dia_chi}</span>}
+      </div>
+
+      <div className="form-group">
+        <label className="form-label">Trạng thái</label>
+        <select
+          name="trang_thai"
+          className="form-input"
+          value={formData.trang_thai}
+          onChange={onChange}
+        >
+          <option value="Hoạt_động">Hoạt động</option>
+          <option value="Tạm_dừng">Tạm dừng</option>
+        </select>
+      </div>
+
+      <div className="form-actions">
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={onCancel}
+        >
+          Hủy
+        </button>
+        <button type="submit" className="btn btn-primary">
+          {showEditModal ? "Cập nhật" : "Thêm cửa hàng"}
+        </button>
+      </div>
+    </form>
+  );
+};
+
+export default QuanLyCuaHang;

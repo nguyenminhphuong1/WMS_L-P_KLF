@@ -30,7 +30,7 @@ class KhuVuc(models.Model):
 class ViTriKho(models.Model):
     ma_vi_tri = models.CharField(unique=True, max_length=10)
     khu_vuc = models.ForeignKey('KhuVuc', models.PROTECT)
-    hang = models.CharField(max_length=1)
+    hang = models.IntegerField()
     cot = models.IntegerField()
     loai_vi_tri = models.CharField(max_length=6, choices=[
         ('Pallet', 'Pallet'),

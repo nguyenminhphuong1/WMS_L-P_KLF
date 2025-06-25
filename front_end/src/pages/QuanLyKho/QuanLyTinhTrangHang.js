@@ -1,74 +1,140 @@
 "use client"
 
-import { useState } from "react"
-import { AlertTriangle, CheckCircle, X, FileText, Rocket, Edit, Wrench, Trash2, Search } from "lucide-react"
+import { useState, useEffect } from "react"
+import axios from "axios"
+import { toast } from "react-toastify"
+import { AlertTriangle, CheckCircle, X, Rocket, Edit, Search } from "lucide-react"
 
 const QuanLyTinhTrangHang = () => {
-  const [expiringItems, setExpiringItems] = useState([
-    {
-      id: "P-2025-001",
-      product: "Heineken",
-      expiryDate: "2025-06-12",
-      quantity: 30,
-      unit: "thùng",
-      location: "A1",
-      daysLeft: 3,
-      priority: "high",
-    },
-    {
-      id: "P-2025-015",
-      product: "Coca Cola",
-      expiryDate: "2025-06-14",
-      quantity: 45,
-      unit: "thùng",
-      location: "C2",
-      daysLeft: 5,
-      priority: "medium",
-    },
-  ])
-
-  const [qualityCheckItems, setQualityCheckItems] = useState([
-    {
-      id: "P-2025-005",
-      product: "Tiger",
-      checkDate: "2025-06-09",
-      location: "B3",
-      status: "pending",
-    },
-    {
-      id: "P-2025-020",
-      product: "Sprite",
-      checkDate: "2025-06-09",
-      location: "A5",
-      status: "pending",
-    },
-  ])
-
-  const [problemItems, setProblemItems] = useState([
-    {
-      id: "P-2025-012",
-      product: "Lavie",
-      issue: "Bao bì hỏng",
-      location: "C8",
-      reportDate: "2025-06-08",
-      severity: "medium",
-    },
-  ])
-
+  const [expiringItems, setExpiringItems] = useState([])
+  const [qualityCheckItems, setQualityCheckItems] = useState([])
+  const [problemItems, setProblemItems] = useState([])
   const [filterType, setFilterType] = useState("all")
-  const [filterDate, setFilterDate] = useState("today")
+  const [filterDate, setFilterDate] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
+  const [loading, setLoading] = useState(false)
 
+  // Fetch dữ liệu từ API và phân loại
+  const fetchAllPallets = async () => {
+    setLoading(true)
+    try {
+      const res = await axios.get("http://localhost:8000/nhaphang/pallets/")
+      const data = res.data
+
+      const now = new Date()
+      const expiring = []
+      const quality = []
+      const problems = []
+
+      data.forEach((item) => {
+        // Hàng sắp hết hạn: còn dưới 7 ngày
+        const expiryDate = new Date(item.han_su_dung)
+        const daysLeft = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24))
+        if (daysLeft <= 7 & expiryDate > now) {
+          expiring.push({
+            id: item.ma_pallet,
+            product: item.ten_san_pham,
+            expiryDate: item.han_su_dung,
+            daysLeft,
+            quantity: item.so_thung_con_lai,
+            unit: "Thùng",
+            location: item.ma_vi_tri_kho,
+            priority: daysLeft <= 2 ? "urgent" : daysLeft <= 4 ? "high" : "medium",
+          })
+        }
+
+        // Hàng cần kiểm tra chất lượng
+        if (item.ngay_kiem_tra_cl) {
+          const qualityCheckDate = new Date(item.ngay_kiem_tra_cl)
+          const daysCheckLeft = Math.ceil((qualityCheckDate - now) / (1000 * 60 * 60 * 24))
+          if (daysCheckLeft <= 3) {
+            quality.push({
+              id: item.ma_pallet,
+              product: item.ten_san_pham,
+              checkDate: item.ngay_kiem_tra_cl,
+              status: "pending",
+              location: item.ma_vi_tri_kho,
+              checkedDate: null,
+            })
+          }
+        }
+
+        // Pallet hết hạn sử dụng
+        if (expiryDate <= now) {
+          problems.push({
+            id: item.ma_pallet,
+            product: item.ten_san_pham,
+            expiryDate: item.han_su_dung,
+            note: item.ghi_chu || "Không rõ",
+            location: item.ma_vi_tri_kho,
+            createdDate: item.ngay_san_xuat,
+          })
+        }
+      })
+
+      setExpiringItems(expiring)
+      setQualityCheckItems(quality)
+      setProblemItems(problems)
+    } catch (err) {
+      toast.error("Không thể tải danh sách pallets!")
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchAllPallets()
+  }, [])
+
+  // Action
   const handlePriorityExport = (itemId) => {
-    setExpiringItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, priority: "urgent" } : item)))
+    setExpiringItems((prev) =>
+      prev.map((item) => (item.id === itemId ? { ...item, priority: "urgent" } : item))
+    )
   }
 
   const handleQualityCheck = (itemId, status) => {
     setQualityCheckItems((prev) =>
-      prev.map((item) => (item.id === itemId ? { ...item, status, checkedDate: new Date().toISOString() } : item)),
+      prev.map((item) =>
+        item.id === itemId
+          ? { ...item, status, checkedDate: new Date().toISOString() }
+          : item
+      )
     )
   }
 
+  // Filter
+  const filterByDate = (items, dateField) => {
+    const now = new Date()
+    return items.filter((item) => {
+      const date = new Date(item[dateField])
+      switch (filterDate) {
+        case "today":
+          return date.toDateString() === now.toDateString()
+        case "week": {
+          const weekStart = new Date(now)
+          weekStart.setDate(now.getDate() - now.getDay())
+          const weekEnd = new Date(weekStart)
+          weekEnd.setDate(weekStart.getDate() + 6)
+          return date >= weekStart && date <= weekEnd
+        }
+        case "month":
+          return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
+        default:
+          return true
+      }
+    })
+  }
+
+  const filterBySearch = (items) => {
+    if (!searchTerm) return items
+    return items.filter(
+      (item) =>
+        item.product?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.id?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  }
+
+  // Màu sắc ưu tiên
   const getPriorityColor = (priority) => {
     switch (priority) {
       case "urgent":
@@ -84,20 +150,10 @@ const QuanLyTinhTrangHang = () => {
     }
   }
 
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case "critical":
-        return "#dc2626"
-      case "high":
-        return "#ef4444"
-      case "medium":
-        return "#f59e0b"
-      case "low":
-        return "#10b981"
-      default:
-        return "#6b7280"
-    }
-  }
+  // Lọc dữ liệu hiển thị
+  const filteredExpiring = filterBySearch(filterByDate(expiringItems, "expiryDate"))
+  const filteredQuality = filterBySearch(filterByDate(qualityCheckItems, "checkDate"))
+  const filteredProblems = filterBySearch(filterByDate(problemItems, "createdDate"))
 
   return (
     <div className="quan-ly-tinh-trang-hang">
@@ -108,7 +164,7 @@ const QuanLyTinhTrangHang = () => {
               <option value="all">Tất cả</option>
               <option value="expiring">Sắp hết hạn</option>
               <option value="quality">Cần kiểm tra CL</option>
-              <option value="problems">Có vấn đề</option>
+              <option value="problems">Hết hạn</option>
             </select>
             <select className="filter-select" value={filterDate} onChange={(e) => setFilterDate(e.target.value)}>
               <option value="today">Hôm nay</option>
@@ -138,11 +194,10 @@ const QuanLyTinhTrangHang = () => {
                 <AlertTriangle size={20} className="warning-icon" />
                 Hàng sắp hết hạn
               </h3>
-              <span className="item-count">{expiringItems.length} mục</span>
+              <span className="item-count">{filteredExpiring.length} mục</span>
             </div>
-
             <div className="items-container">
-              {expiringItems.map((item) => (
+              {filteredExpiring.map((item) => (
                 <div key={item.id} className="status-item expiring-item">
                   <div className="item-header">
                     <div className="item-info">
@@ -160,14 +215,12 @@ const QuanLyTinhTrangHang = () => {
                       {item.daysLeft} ngày
                     </div>
                   </div>
-
                   <div className="item-details">
                     <span className="detail-item">
                       Còn: {item.quantity} {item.unit}
                     </span>
                     <span className="detail-item">Vị trí: {item.location}</span>
                   </div>
-
                   <div className="item-actions">
                     <button className="action-btn priority" onClick={() => handlePriorityExport(item.id)}>
                       <Rocket size={16} />
@@ -193,30 +246,28 @@ const QuanLyTinhTrangHang = () => {
                 Hàng cần kiểm tra CL
               </h3>
               <span className="item-count">
-                {qualityCheckItems.filter((item) => item.status === "pending").length} mục
+                {filteredQuality.filter((item) => item.status === "pending").length} mục
               </span>
             </div>
-
             <div className="items-container">
-              {qualityCheckItems.map((item) => (
+              {filteredQuality.map((item) => (
                 <div key={item.id} className={`status-item quality-item ${item.status}`}>
                   <div className="item-header">
                     <div className="item-info">
                       <span className="item-id">{item.id}</span>
                       <span className="item-product">{item.product}</span>
                       <span className="item-check-date">
-                        Ngày CL: {new Date(item.checkDate).toLocaleDateString("vi-VN")}
+                        Ngày CL: {item.checkDate ? new Date(item.checkDate).toLocaleDateString("vi-VN") : "--"}
                       </span>
                     </div>
                     <div className="status-badge">
                       {item.status === "pending"
                         ? "Chờ kiểm tra"
                         : item.status === "passed"
-                          ? "Đã kiểm tra"
-                          : "Có vấn đề"}
+                        ? "Đã kiểm tra"
+                        : "Có vấn đề"}
                     </div>
                   </div>
-
                   <div className="item-details">
                     <span className="detail-item">Vị trí: {item.location}</span>
                     {item.checkedDate && (
@@ -225,7 +276,6 @@ const QuanLyTinhTrangHang = () => {
                       </span>
                     )}
                   </div>
-
                   {item.status === "pending" && (
                     <div className="item-actions">
                       <button className="action-btn success" onClick={() => handleQualityCheck(item.id, "passed")}>
@@ -244,63 +294,34 @@ const QuanLyTinhTrangHang = () => {
           </div>
         )}
 
-        {/* Hàng có vấn đề */}
+        {/* Pallet mới */}
         {(filterType === "all" || filterType === "problems") && (
           <div className="status-section">
             <div className="section-header">
               <h3 className="section-title">
                 <X size={20} className="error-icon" />
-                Hàng có vấn đề
+                Hết hạn sử dụng
               </h3>
-              <span className="item-count">{problemItems.length} mục</span>
+              <span className="item-count">{filteredProblems.length} mục</span>
             </div>
-
             <div className="items-container">
-              {problemItems.map((item) => (
+              {filteredProblems.map((item) => (
                 <div key={item.id} className="status-item problem-item">
                   <div className="item-header">
                     <div className="item-info">
                       <span className="item-id">{item.id}</span>
                       <span className="item-product">{item.product}</span>
-                      <span className="item-issue">{item.issue}</span>
-                    </div>
-                    <div
-                      className="severity-badge"
-                      style={{
-                        backgroundColor: `${getSeverityColor(item.severity)}20`,
-                        color: getSeverityColor(item.severity),
-                      }}
-                    >
-                      {item.severity === "critical"
-                        ? "Nghiêm trọng"
-                        : item.severity === "high"
-                          ? "Cao"
-                          : item.severity === "medium"
-                            ? "Trung bình"
-                            : "Thấp"}
+                      <span className="item-issue">{item.note}</span>
                     </div>
                   </div>
-
                   <div className="item-details">
                     <span className="detail-item">Vị trí: {item.location}</span>
                     <span className="detail-item">
-                      Báo cáo: {new Date(item.reportDate).toLocaleDateString("vi-VN")}
+                      Ngày nhập: {item.createdDate ? new Date(item.createdDate).toLocaleDateString("vi-VN") : "--"}
                     </span>
-                  </div>
-
-                  <div className="item-actions">
-                    <button className="action-btn repair">
-                      <Wrench size={16} />
-                      Xử lý
-                    </button>
-                    <button className="action-btn danger">
-                      <Trash2 size={16} />
-                      Thanh lý
-                    </button>
-                    <button className="action-btn report">
-                      <FileText size={16} />
-                      Báo cáo
-                    </button>
+                    <span className="detail-item">
+                      Hạn sử dụng: {item.expiryDate ? new Date(item.expiryDate).toLocaleDateString("vi-VN") : "--"}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -310,15 +331,16 @@ const QuanLyTinhTrangHang = () => {
       </div>
 
       {/* Empty state */}
-      {((filterType === "expiring" && expiringItems.length === 0) ||
-        (filterType === "quality" && qualityCheckItems.length === 0) ||
-        (filterType === "problems" && problemItems.length === 0)) && (
+      {((filterType === "expiring" && filteredExpiring.length === 0) ||
+        (filterType === "quality" && filteredQuality.length === 0) ||
+        (filterType === "problems" && filteredProblems.length === 0)) && (
         <div className="empty-state">
           <CheckCircle size={48} />
           <h3>Không có mục nào cần xử lý</h3>
           <p>Tất cả hàng hóa đang trong tình trạng tốt</p>
         </div>
       )}
+      {loading && <div className="loading">Đang tải dữ liệu...</div>}
     </div>
   )
 }

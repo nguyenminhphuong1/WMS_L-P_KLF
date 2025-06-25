@@ -3,27 +3,20 @@
 import axios from 'axios';
 import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, MapPin, Package } from "lucide-react"
-import ChiTietPallet from "./ChiTietPallet";
 
-const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
-  const [warehouse, setWarehouse] = useState({
-      ma_pallet: '',
-      san_pham: '',
-      nha_cung_cap: '',
-      so_thung_ban_dau: 0,
-      so_thung_con_lai: 0,
-      vi_tri_kho: '',
-      ngay_san_xuat: '',
-      han_su_dung: '',
-      ngay_kiem_tra_cl: '',
-      trang_thai: 'Mới',
-      ghi_chu: '',
-  });
+const SuaPallet = ({ pallet, onSubmit, onCancel, nextPalletCode, onSuccess }) => {
+    const [formData, setFormData] = useState(pallet || {});
+  
+    useEffect(() => {
+        if (pallet) {
+        setFormData(pallet);
+        }
+    }, [pallet]);            
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setWarehouse((prev) => ({ ...prev, [name]: value }));
-  };
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    };
 
   const [dropdownData, setDropdownData] = useState({
     ds_vi_tri_kho: [],
@@ -51,17 +44,17 @@ const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
   const validateForm = () => {
     const newErrors = {}
 
-    if (!warehouse.ma_pallet) newErrors.productCode = "Vui lòng nhập mã pallet"
-    if (!warehouse.san_pham) newErrors.productName = "Vui lòng nhập tên sản phẩm"
-    if (!warehouse.so_thung_ban_dau || warehouse.so_thung_ban_dau <= 0) newErrors.quantity = "Số lượng phải lớn hơn 0"
-    if (!warehouse.ngay_san_xuat) newErrors.productionDate = "Vui lòng nhập ngày sản xuất"
-    if (!warehouse.han_su_dung) newErrors.expiryDate = "Vui lòng nhập hạn sử dụng"
-    if (!warehouse.vi_tri_kho) newErrors.location = "Vui lòng nhập vị trí"
-    if (!warehouse.nha_cung_cap) newErrors.supplier = "Vui lòng nhập nhà cung cấp"
+    if (!formData.ma_pallet) newErrors.ma_pallet = "Vui lòng nhập mã pallet"
+    if (!formData.ten_san_pham) newErrors.ten_san_pham = "Vui lòng nhập tên sản phẩm"
+    if (!formData.so_thung_ban_dau || formData.so_thung_ban_dau <= 0) newErrors.so_thung_ban_dau = "Số lượng phải lớn hơn 0"
+    if (!formData.ngay_san_xuat) newErrors.ngay_san_xuat = "Vui lòng nhập ngày sản xuất"
+    if (!formData.han_su_dung) newErrors.han_su_dung = "Vui lòng nhập hạn sử dụng"
+    if (!formData.vi_tri_kho) newErrors.vi_tri_kho = "Vui lòng nhập vị trí"
+    if (!formData.nha_cung_cap) newErrors.nha_cung_cap = "Vui lòng nhập nhà cung cấp"
 
     // Kiểm tra logic ngày tháng
-    if (warehouse.ngay_san_xuat && warehouse.han_su_dung) {
-      if (new Date(warehouse.ngay_san_xuat) >= new Date(warehouse.han_su_dung)) {
+    if (formData.ngay_san_xuat && formData.han_su_dung) {
+      if (new Date(formData.ngay_san_xuat) >= new Date(formData.han_su_dung)) {
         newErrors.expiryDate = "Hạn sử dụng phải sau ngày sản xuất"
       }
     }
@@ -71,52 +64,32 @@ const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
   }
 
   const handleSubmit = async (e) => {
-      e.preventDefault();
-      if(!validateForm())
+    if (!validateForm()) {
         return;
+    }
+      e.preventDefault();
       const payload = {
-          ma_pallet: warehouse.ma_pallet,
-          san_pham: warehouse.san_pham,
-          nha_cung_cap: warehouse.nha_cung_cap,
-          so_thung_ban_dau: warehouse.so_thung_ban_dau,
-          so_thung_con_lai: warehouse.so_thung_ban_dau,
-          vi_tri_kho: warehouse.vi_tri_kho,
-          ngay_san_xuat: warehouse.ngay_san_xuat,
-          han_su_dung: warehouse.han_su_dung,
-          ngay_kiem_tra_cl: warehouse.ngay_kiem_tra_cl,
-          trang_thai: warehouse.trang_thai || 'Mới',
-          ghi_chu: warehouse.ghi_chu || '',
+          ma_pallet: formData.ma_pallet,
+          san_pham: formData.san_pham,
+          nha_cung_cap: formData.nha_cung_cap,
+          so_thung_ban_dau: formData.so_thung_ban_dau,
+          so_thung_con_lai: formData.so_thung_con_lai,
+          vi_tri_kho: formData.vi_tri_kho,
+          ngay_san_xuat: formData.ngay_san_xuat,
+          han_su_dung: formData.han_su_dung,
+          ngay_kiem_tra_cl: formData.ngay_kiem_tra_cl,
+          trang_thai: formData.trang_thai || 'Mới',
+          ghi_chu: formData.ghi_chu || '',
       };
   
       try {
-        const res = await axios.post('http://localhost:8000/nhaphang/pallets/', payload);
-        alert('Tạo pallet thành công!');
+        const res = await axios.put(`http://localhost:8000/nhaphang/pallets/${formData.id}/`, payload);
+        alert('Sửa thành công!');
         onSuccess(res.data)
       } catch (err) {
-        alert('Tạo pallet thất bại!'+ (err.response?.data?.detail || err.message));
+        alert('Sửa thất bại! '+ (err.response?.data?.detail || err.message));
       }
     };
-
-  // Tạo mã pallet tự động
-  const generatePalletCode = (productCode, currentPosition) => {
-    const today = new Date();
-    const day = today.getDate();        
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const year = today.getFullYear();  
-
-    return `${productCode}-${currentPosition}-${day}${month}${year%100}`;
-  };
-
-  useEffect(() => {
-    if (warehouse.san_pham && warehouse.vi_tri_kho) {
-      const selectedProduct = dropdownData.ds_san_pham.find(sp => String(sp.id) === String(warehouse.san_pham));
-      const productCode = selectedProduct ? selectedProduct.code : '';
-      const selectedPosition = dropdownData.ds_vi_tri_kho.find(vt => String(vt.id) === String(warehouse.vi_tri_kho));
-      const positionCode = selectedPosition ? selectedPosition.label : '';
-      const newCode = generatePalletCode(productCode, positionCode);
-      setWarehouse(prev => ({ ...prev, ma_pallet: newCode }));
-    }
-  }, [warehouse.san_pham, warehouse.vi_tri_kho, dropdownData.ds_san_pham, dropdownData.ds_vi_tri_kho]);
 
   return (
     <form onSubmit={handleSubmit} className="pallet-form">
@@ -127,14 +100,18 @@ const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
         </h4>
 
         <div className="form-row">
+          {/* <div className="form-group">
+            <label className="form-label">Mã Pallet</label>
+            <input type="text" className="form-input" value={nextPalletCode} disabled />
+          </div> */}
           <div className="form-group">
-            <label className="form-label">Mã Pallet (Tự động) *</label>
+            <label className="form-label">Mã Pallet *</label>
             <input
               type="text"
               name="ma_pallet"
               className={`form-input ${errors.ma_pallet ? "error" : ""}`}
-              value={warehouse.ma_pallet}
-              readOnly
+              value={formData.ma_pallet}
+              onChange={handleChange}
               placeholder="Nhập mã sản phẩm"
             />
             {errors.ma_pallet && <span className="error-text">{errors.ma_pallet}</span>}
@@ -147,7 +124,7 @@ const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
             <select
               name="san_pham"
               className={`form-input ${errors.ten_san_pham ? "error" : ""}`}
-              value={warehouse.san_pham}
+              value={formData.san_pham}
               onChange={handleChange}
             >
               <option value="">-- Chọn sản phẩm --</option>
@@ -155,20 +132,33 @@ const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
                 <option key={sp.id} value={sp.id}>{sp.label}</option>
               ))}
             </select>
-            {errors.san_pham && <span className="error-text">{errors.san_pham}</span>}
+            {errors.ten_san_pham && <span className="error-text">{errors.ten_san_pham}</span>}
           </div>
 
           <div className="form-group">
-            <label className="form-label">Số lượng *</label>
+            <label className="form-label">Số lượng ban đầu *</label>
             <input
               type="number"
               name="so_thung_ban_dau"
               className={`form-input ${errors.so_thung_ban_dau ? "error" : ""}`}
-              value={warehouse.so_thung_ban_dau}
+              value={formData.so_thung_ban_dau}
               onChange={handleChange}
-              placeholder="Nhập số lượng"
+              placeholder="Nhập số lượng ban đầu"
             />
             {errors.so_thung_ban_dau && <span className="error-text">{errors.so_thung_ban_dau}</span>}
+          </div>
+
+            <div className="form-group">
+            <label className="form-label">Số lượng còn lại *</label>
+            <input
+              type="number"
+              name="so_thung_con_lai"
+              className={`form-input ${errors.so_thung_con_lai ? "error" : ""}`}
+              value={formData.so_thung_con_lai}
+              onChange={handleChange}
+              placeholder="Nhập số lượng còn lại"
+            />
+            {errors.so_thung_con_lai && <span className="error-text">{errors.so_thung_con_lai}</span>}
           </div>
 
           <div className="form-group">
@@ -176,7 +166,7 @@ const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
             <select
               name="trang_thai"
               className={`form-input ${errors.trang_thai ? "error" : ""}`}
-              value={warehouse.trang_thai}
+              value={formData.trang_thai}
               onChange={handleChange}
             >
               <option value="">-- Chọn trạng thái --</option>
@@ -202,7 +192,7 @@ const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
               type="date"
               name="ngay_san_xuat"
               className={`form-input ${errors.ngay_san_xuat ? "error" : ""}`}
-              value={warehouse.ngay_san_xuat}
+              value={formData.ngay_san_xuat}
               onChange={handleChange}
             />
             {errors.ngay_san_xuat && <span className="error-text">{errors.ngay_san_xuat}</span>}
@@ -216,7 +206,7 @@ const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
               type="date"
               name="han_su_dung"
               className={`form-input ${errors.han_su_dung ? "error" : ""}`}
-              value={warehouse.han_su_dung}
+              value={formData.han_su_dung}
               onChange={handleChange}
             />
             {errors.han_su_dung && <span className="error-text">{errors.han_su_dung}</span>}
@@ -227,7 +217,7 @@ const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
               type="date"
               name="ngay_kiem_tra_cl"
               className="form-input"
-              value={warehouse.ngay_kiem_tra_cl}
+              value={formData.ngay_kiem_tra_cl}
               onChange={handleChange}
             />
           </div>
@@ -246,7 +236,7 @@ const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
             <select
               name="vi_tri_kho"
               className={`form-input ${errors.vi_tri_kho ? "error" : ""}`}
-              value={warehouse.vi_tri_kho}
+              value={formData.vi_tri_kho}
               onChange={handleChange}
             >
               <option value="">-- Chọn vị trí --</option>
@@ -262,7 +252,7 @@ const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
             <select
               name="nha_cung_cap"
               className={`form-input ${errors.nha_cung_cap ? "error" : ""}`}
-              value={warehouse.nha_cung_cap}
+              value={formData.nha_cung_cap}
               onChange={handleChange}
               >
               <option value="">-- Chọn nhà cung cấp --</option>
@@ -280,7 +270,7 @@ const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
             className="form-input"
             name="ghi_chu"
             rows="3"
-            value={warehouse.ghi_chu}
+            value={formData.ghi_chu}
             onChange={handleChange}
             placeholder="Nhập ghi chú về chất lượng, tình trạng sản phẩm..."
           />
@@ -292,11 +282,11 @@ const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
           Hủy
         </button>
         <button type="submit" className="btn btn-primary">
-          Tạo Pallet
+          Sửa
         </button>
       </div>
     </form>
   )
 }
 
-export default ThemPallet
+export default SuaPallet

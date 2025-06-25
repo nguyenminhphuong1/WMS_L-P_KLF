@@ -41,11 +41,11 @@
 
 .nav-link:hover {
   background-color: #e6ffe9;
-  color: #219C9C;
+  color: #00ff33;
 }
 
 .nav-link.active {
-  background-color: #219C9C;
+  background-color: #00ff33;
   color: white;
 }
 
@@ -56,7 +56,7 @@
   top: 0;
   bottom: 0;
   width: 4px;
-  background-color: #18cccc;
+  background-color: #00cc29;
 }
 
 .nav-icon {
@@ -107,11 +107,11 @@
 
 .submenu-link:hover {
   background-color: #e6ffe9;
-  color: #219C9C;
+  color: #00ff33;
 }
 
 .submenu-link.active {
-  background-color: #219C9C;
+  background-color: #00ff33;
   color: white;
 }
 

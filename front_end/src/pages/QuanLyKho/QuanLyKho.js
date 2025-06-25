@@ -11,7 +11,7 @@ import {
   CheckCircle,
 } from "lucide-react"
 import DashboardKho from "./DashboardKho"
-import QuanLyViTri from "./QuanLyViTri"
+import QuanLyKhuVuc from "./QuanLyKhuVuc"
 import BaoTriKho from "./BaoTriKho"
 import BaoCaoKho from "./BaoCaoKho"
 import CaiDatKho from "./CaiDatKho"
@@ -36,7 +36,7 @@ const QuanLyKho = () => {
       id: "vi-tri",
       title: "Quản lý vị trí",
       icon: MapPin,
-      path: "/quan-ly-kho/vi-tri",
+      path: "/quan-ly-kho/khu-vuc",
       description: "Cấu hình và quản lý vị trí kho",
     },
     {
@@ -125,7 +125,7 @@ const QuanLyKho = () => {
       <div className="page-content">
         <Routes>
           <Route path="/" element={<DashboardKho />} />
-          <Route path="/vi-tri" element={<QuanLyViTri />} />
+          <Route path="/khu-vuc" element={<QuanLyKhuVuc />} />
           <Route path="/hang-hoa" element={<QuanLyHangHoaTree />} />
           <Route path="/tinh-trang" element={<QuanLyTinhTrangHang />} />
           <Route path="/kiem-ke" element={<KiemKeKho />} />
