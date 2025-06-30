@@ -1,15 +1,17 @@
 "use client"
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 
 const InQRPallet = ({ pallets }) => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [showQRForm, setShowQRForm] = useState(false);
 
   const getQrUrl = (pallet) => {
-    // Encode toàn bộ thông tin pallet vào tham số data
     const palletData = encodeURIComponent(JSON.stringify(pallet));
-    const link = `http://192.168.1.87:3000/nhap-hang/scan?data=${palletData}`;
+    // Lấy host và port hiện tại từ window.location
+    const { protocol, hostname, port } = window.location;
+    const baseUrl = `${protocol}//${hostname}${port ? `:${port}` : ""}`;
+    const link = `${baseUrl}/nhap-hang/scan?data=${palletData}`;
     return `http://localhost:8000/nhaphang/pallets/qr/?data=${encodeURIComponent(link)}`;
   };
 
@@ -78,7 +80,7 @@ const InQRPallet = ({ pallets }) => {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
+          gridTemplateColumns: "repeat(1fr)",
           gap: "24px",
         }}
       >
@@ -91,12 +93,13 @@ const InQRPallet = ({ pallets }) => {
               textAlign: "center",
               background: "#fff",
             }}
+            className="qr-print-area"
           >
             <div>
               <img
                 src={getQrUrl(pallet)}
                 alt={`QR ${pallet.ma_pallet}`}
-                style={{ width: 180, height: 180 }}
+                style={{ width: 350, height: 350 }}
               />
             </div>
             <div style={{ marginTop: 8 }}>

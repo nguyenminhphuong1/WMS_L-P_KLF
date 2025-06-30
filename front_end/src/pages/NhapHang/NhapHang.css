@@ -72,13 +72,13 @@
 }
 
 .tab-btn:hover {
-  color: #00ff33;
+  color: #1BA6A1;
   background-color: #f8fff9;
 }
 
 .tab-btn.active {
-  color: #00ff33;
-  border-bottom-color: #00ff33;
+  color: #1BA6A1;
+  border-bottom-color: #1BA6A1;
   background-color: #f8fff9;
 }
 
@@ -167,7 +167,7 @@ th.date-col, td.date-cell {
 /* Table Cell Styles */
 .pallet-code {
   font-weight: 600;
-  color: #00ff33;
+  color: #1BA6A1;
   font-family: monospace;
 }
 
@@ -190,17 +190,17 @@ th.date-col, td.date-cell {
 .quantity-cell {
   text-align: right;
   font-weight: 600;
-  color: #00ff33;
+  color: #1BA6A1;
 }
 
 .location-badge {
   background-color: #e6ffe9;
-  color: #00ff33;
+  color: #1BA6A1;
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  border: 1px solid #00ff33;
+  border: 1px solid #1BA6A1;
 }
 
 .date-cell {
@@ -352,7 +352,7 @@ th.date-col, td.date-cell {
 
 .form-input:focus {
   outline: none;
-  border-color: #00ff33;
+  border-color: #1BA6A1;
   box-shadow: 0 0 0 3px rgba(0, 255, 51, 0.1);
 }
 
@@ -394,7 +394,7 @@ th.date-col, td.date-cell {
 .pallet-info h3 {
   font-size: 20px;
   font-weight: 700;
-  color: #00ff33;
+  color: #1BA6A1;
   margin-bottom: 8px;
 }
 
@@ -471,7 +471,7 @@ th.date-col, td.date-cell {
   background-color: #f8f9fa;
   padding: 12px;
   border-radius: 6px;
-  border-left: 4px solid #00ff33;
+  border-left: 4px solid #1BA6A1;
   font-size: 14px;
   color: #333333;
   line-height: 1.5;
@@ -498,7 +498,7 @@ th.date-col, td.date-cell {
 .qr-container {
   display: inline-block;
   padding: 20px;
-  border: 2px solid #00ff33;
+  border: 2px solid #1BA6A1;
   border-radius: 12px;
   background-color: #ffffff;
 }
@@ -514,7 +514,7 @@ th.date-col, td.date-cell {
 .qr-info .pallet-code {
   font-size: 16px;
   font-weight: 700;
-  color: #00ff33;
+  color: #1BA6A1;
   margin-bottom: 4px;
 }
 
@@ -585,12 +585,12 @@ th.date-col, td.date-cell {
 }
 
 .btn-primary {
-  background-color: #00ff33;
+  background-color: #1BA6A1;
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: #00cc29;
+  background-color: #1BA6A1;
   transform: translateY(-1px);
 }
 
@@ -675,5 +675,27 @@ th.date-col, td.date-cell {
 
   .btn-action {
     padding: 4px 6px;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .qr-print-area, .qr-print-area * {
+    visibility: visible;
+  }
+
+  .qr-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  img {
+    max-height: 350px;
+    max-width: 350px;
   }
 }

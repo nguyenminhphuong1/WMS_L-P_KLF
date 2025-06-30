@@ -12,6 +12,7 @@ import re
 from django.http import HttpResponse
 import qrcode
 from io import BytesIO
+from qrcode.constants import ERROR_CORRECT_L
 
 # Create your views here.
 class PalletsViewSet(viewsets.ModelViewSet):
@@ -63,12 +64,22 @@ class PalletsViewSet(viewsets.ModelViewSet):
         
     @action(detail=False, methods=['get'], url_path='qr')
     def qr(self, request):
-        data = request.GET.get('data', 'No Data Provided')
+        data = request.GET.get('data', 'DX-001')  
 
-        qr = qrcode.make(data)
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=ERROR_CORRECT_L,  
+            box_size=8,  
+            border=1,
+        )
+
+        qr.add_data(data)
+        qr.make(fit=True)
+
+        img = qr.make_image(fill_color="black", back_color="white")
 
         buffer = BytesIO()
-        qr.save(buffer, format="PNG")
+        img.save(buffer, format="PNG")
         buffer.seek(0)
 
         return HttpResponse(buffer.getvalue(), content_type="image/png")
