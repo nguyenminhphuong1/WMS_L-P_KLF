@@ -1,142 +1,84 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react";
+import axios from "axios";
 import { Plus, Save, Trash2, Calculator, Package } from "lucide-react"
 import Modal from "../../components/common/Modal"
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+const DEFAULT_FORM_ORDER = {
+  ma_don: "",
+  cua_hang: "",
+  ngay_tao: new Date().toISOString().slice(0, 10),
+  ngay_giao: new Date().toISOString().slice(0, 10),
+  trang_thai: "Chờ_xuất",
+  qr_code_data: "",
+  da_in_qr: false,
+  nguoi_tao: "",
+  ghi_chu: "",
+}
+
+const DEFAULT_FORM_DETAIL = {
+  don_xuat: "",
+  san_pham: "",
+  so_luong_can: 0,
+  pallet_assignments: {},
+  trang_thai: "Chờ_xuất",
+  da_xuat_xong: false,
+  ghi_chu: "",
+}
 
 const TaoDonXuat = () => {
-  const [orderItems, setOrderItems] = useState([])
-  const [selectedStore, setSelectedStore] = useState("")
-  const [orderDate, setOrderDate] = useState(new Date().toISOString().slice(0, 10))
-  const [notes, setNotes] = useState("")
-  const [showAllocationModal, setShowAllocationModal] = useState(false)
-  const [selectedItem, setSelectedItem] = useState(null)
-  const [allocationResult, setAllocationResult] = useState([])
+  const [orders, setOrders] = useState([])
+  const [formOrder, setFormOrders] = useState(DEFAULT_FORM_ORDER)
+  const [details, setDetails] = useState([])
+  const [formDetail, setFormDetail] = useState(DEFAULT_FORM_DETAIL)
+  const [cuaHang, setCuaHang] = useState([])
+  const [errors, setErrors] = useState({})
+  const [products, setProducts] = useState([])
+  const [selectedProducts, setSelectedproduct] = useState([])
 
-  // Mock data
-  const stores = [
-    { id: 1, name: "Siêu thị BigC Thăng Long", area: "Hà Nội" },
-    { id: 2, name: "Cửa hàng Trái cây Sạch ABC", area: "TP.HCM" },
-    { id: 3, name: "Lotte Mart Đà Nẵng", area: "Đà Nẵng" },
-  ]
+  const newItem = {
+    temp_id: Date.now(), 
+    san_pham: "",
+    so_luong_can: "",
+    pallet_assignments: "",
+    trang_thai: "Chờ_xuất",
+    da_xuat_xong: false,
+    ghi_chu: "",
+  };
 
-  const products = [
-    { id: 1, code: "AP001", name: "Táo Fuji", unit: "kg" },
-    { id: 2, code: "OR001", name: "Cam Sành", unit: "kg" },
-    { id: 3, code: "BN001", name: "Chuối Tiêu", unit: "kg" },
-    { id: 4, code: "MG001", name: "Xoài Cát", unit: "kg" },
-  ]
+  const handleSubmitOrder = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await axios.post("http://localhost:8000/taodon/donxuat/", formOrder);
 
-  // Mock pallet data với thông tin chi tiết
-  const pallets = [
-    {
-      id: 1,
-      palletCode: "P-2024-001",
-      productCode: "AP001",
-      productName: "Táo Fuji",
-      totalQuantity: 150,
-      availableQuantity: 120, // Đã xuất 30kg
-      isOpened: true,
-      importDate: "2024-01-10",
-      productionDate: "2024-01-08",
-      expiryDate: "2024-02-08",
-      qualityCheckDate: "2024-01-15",
-      location: "A-01-01",
-      daysUntilExpiry: 15,
-      priority: 1, // Cao nhất vì đã mở và gần hết hạn
-    },
-    {
-      id: 2,
-      palletCode: "P-2024-002",
-      productCode: "AP001",
-      productName: "Táo Fuji",
-      totalQuantity: 150,
-      availableQuantity: 150, // Chưa xuất
-      isOpened: false,
-      importDate: "2024-01-12",
-      productionDate: "2024-01-10",
-      expiryDate: "2024-02-10",
-      qualityCheckDate: "2024-01-15",
-      location: "A-01-02",
-      daysUntilExpiry: 17,
-      priority: 2,
-    },
-    {
-      id: 3,
-      palletCode: "P-2024-003",
-      productCode: "OR001",
-      productName: "Cam Sành",
-      totalQuantity: 200,
-      availableQuantity: 180,
-      isOpened: true,
-      importDate: "2024-01-08",
-      productionDate: "2024-01-05",
-      expiryDate: "2024-02-05",
-      qualityCheckDate: "2024-01-12",
-      location: "B-01-01",
-      daysUntilExpiry: 12,
-      priority: 1,
-    },
-  ]
+      const createdOrderId = res.data.id; 
 
-  // Thuật toán phân bổ pallet
-  const allocatePallets = (productCode, requestedQuantity) => {
-    // 1. Tìm pallet cùng sản phẩm
-    const availablePallets = pallets
-      .filter((p) => p.productCode === productCode && p.availableQuantity > 0)
-      .map((p) => ({
-        ...p,
-        // Tính toán priority score
-        priorityScore: calculatePriorityScore(p),
-      }))
-      .sort((a, b) => b.priorityScore - a.priorityScore) // Sắp xếp theo priority cao nhất
+      await Promise.all(
+        selectedProducts.map((item) =>
+          axios.post("http://localhost:8000/taodon/chitietdon/", {
+            don_xuat: createdOrderId, 
+            san_pham: item.san_pham,
+            so_luong_can: item.so_luong,
+            pallet_assignments: item.pallet_assignments || [],
+            trang_thai: "Chờ_xuất",
+            da_xuat_xong: false,
+            ghi_chu: item.ghi_chu || "",
+          })
+        )
+      );
 
-    const allocation = []
-    let remainingQuantity = requestedQuantity
-
-    for (const pallet of availablePallets) {
-      if (remainingQuantity <= 0) break
-
-      const allocatedQuantity = Math.min(remainingQuantity, pallet.availableQuantity)
-      allocation.push({
-        ...pallet,
-        allocatedQuantity,
-        remainingAfterAllocation: pallet.availableQuantity - allocatedQuantity,
-      })
-
-      remainingQuantity -= allocatedQuantity
+      toast.success("Thêm đơn xuất thành công!");
+      setFormOrders(DEFAULT_FORM_ORDER);
+      setSelectedproduct([]);
+    } catch (err) {
+      console.error(err);
+      toast.error("Lỗi khi tạo đơn xuất hoặc chi tiết đơn!");
     }
+  };
 
-    return {
-      allocation,
-      totalAllocated: requestedQuantity - remainingQuantity,
-      shortfall: remainingQuantity,
-      isFullyAllocated: remainingQuantity === 0,
-    }
-  }
-
-  // Tính toán điểm ưu tiên
-  const calculatePriorityScore = (pallet) => {
-    let score = 0
-
-    // 1. Pallet đã mở (ưu tiên cao nhất)
-    if (pallet.isOpened) score += 1000
-
-    // 2. Gần hết hạn sử dụng (càng gần càng cao điểm)
-    const daysWeight = Math.max(0, 30 - pallet.daysUntilExpiry) * 10
-    score += daysWeight
-
-    // 3. FIFO - nhập trước xuất trước
-    const importDate = new Date(pallet.importDate)
-    const daysSinceImport = (new Date() - importDate) / (1000 * 60 * 60 * 24)
-    score += daysSinceImport
-
-    // 4. Ít hàng còn lại (để làm hết pallet)
-    const utilizationBonus = (1 - pallet.availableQuantity / pallet.totalQuantity) * 100
-    score += utilizationBonus
-
-    return score
-  }
 
   const addOrderItem = () => {
     const newItem = {
@@ -148,201 +90,52 @@ const TaoDonXuat = () => {
       notes: "",
       allocation: null,
     }
-    setOrderItems([...orderItems, newItem])
+    setSelectedproduct([...selectedProducts, newItem])
   }
 
-  const updateOrderItem = (id, field, value) => {
-    setOrderItems(
-      orderItems.map((item) => {
-        if (item.id === id) {
-          const updatedItem = { ...item, [field]: value }
+  //fetch data của hàng
+  const loaded = useRef(false);
+  useEffect(() => {
+    if (loaded.current) return;
+    loaded.current = true;
+    axios.get('http://localhost:8000/taodon/cuahang') 
+      .then((res) => {
+        setCuaHang(res.data);
+      })
+      .catch((err) => {
+        console.error('Lỗi khi tải dữ liệu cửa hàng: ', err);
+      });
+  }, []);
 
-          // Auto-fill product info when product is selected
-          if (field === "productCode") {
-            const product = products.find((p) => p.code === value)
-            if (product) {
-              updatedItem.productName = product.name
-              updatedItem.unit = product.unit
-            }
-          }
-
-          return updatedItem
-        }
-        return item
-      }),
-    )
-  }
+  //fetch data sản phẩm
+  const loadedProduct = useRef(false);
+  useEffect(() => {
+    if (loadedProduct.current) return;
+    loadedProduct.current = true;
+    axios.get('http://localhost:8000/quanlykho/sanpham') 
+      .then((res) => {
+        setProducts(res.data);
+      })
+      .catch((err) => {
+        console.error('Lỗi khi tải dữ liệu cửa hàng: ', err);
+      });
+  }, []);
 
   const removeOrderItem = (id) => {
-    setOrderItems(orderItems.filter((item) => item.id !== id))
+    setSelectedproduct(selectedProducts.filter((item) => item.id !== id))
   }
 
-  const handleAutoAllocate = (item) => {
-    if (!item.productCode || !item.quantity) {
-      alert("Vui lòng chọn sản phẩm và nhập số lượng")
-      return
-    }
-
-    const result = allocatePallets(item.productCode, Number.parseInt(item.quantity))
-    setSelectedItem(item)
-    setAllocationResult(result)
-    setShowAllocationModal(true)
-  }
-
-  const confirmAllocation = () => {
-    if (selectedItem && allocationResult) {
-      updateOrderItem(selectedItem.id, "allocation", allocationResult)
-      setShowAllocationModal(false)
-      setSelectedItem(null)
-      setAllocationResult([])
-    }
-  }
-
-  const calculateTotalQuantity = () => {
-    return orderItems.reduce((total, item) => total + (Number.parseInt(item.quantity) || 0), 0)
-  }
-
-  const saveOrder = () => {
-    if (!selectedStore) {
-      alert("Vui lòng chọn cửa hàng")
-      return
-    }
-
-    if (orderItems.length === 0) {
-      alert("Vui lòng thêm ít nhất một sản phẩm")
-      return
-    }
-
-    // Validate all items have allocation
-    const unallocatedItems = orderItems.filter((item) => !item.allocation)
-    if (unallocatedItems.length > 0) {
-      alert("Vui lòng phân bổ pallet cho tất cả sản phẩm")
-      return
-    }
-
-    const order = {
-      id: Date.now(),
-      storeId: selectedStore,
-      storeName: stores.find((s) => s.id === Number.parseInt(selectedStore))?.name,
-      orderDate,
-      items: orderItems,
-      totalQuantity: calculateTotalQuantity(),
-      notes,
-      status: "pending",
-      createdDate: new Date().toISOString(),
-    }
-
-    console.log("Đơn hàng đã tạo:", order)
-    alert("Tạo đơn xuất thành công!")
-
-    // Reset form
-    setOrderItems([])
-    setSelectedStore("")
-    setNotes("")
-  }
-
-  const AllocationModal = () => (
-    <div className="allocation-modal">
-      <div className="allocation-header">
-        <h4>Phân bổ pallet cho {selectedItem?.productName}</h4>
-        <p>
-          Số lượng yêu cầu: {selectedItem?.quantity} {selectedItem?.unit}
-        </p>
-      </div>
-
-      <div className="allocation-summary">
-        <div className="summary-item">
-          <span className="label">Tổng phân bổ:</span>
-          <span className="value success">
-            {allocationResult.totalAllocated} {selectedItem?.unit}
-          </span>
-        </div>
-        {allocationResult.shortfall > 0 && (
-          <div className="summary-item">
-            <span className="label">Thiếu hụt:</span>
-            <span className="value danger">
-              {allocationResult.shortfall} {selectedItem?.unit}
-            </span>
-          </div>
-        )}
-        <div className="summary-item">
-          <span className="label">Trạng thái:</span>
-          <span className={`value ${allocationResult.isFullyAllocated ? "success" : "warning"}`}>
-            {allocationResult.isFullyAllocated ? "Đủ hàng" : "Thiếu hàng"}
-          </span>
-        </div>
-      </div>
-
-      <div className="allocation-table">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Mã Pallet</th>
-              <th>Vị trí</th>
-              <th>Tồn kho</th>
-              <th>Phân bổ</th>
-              <th>Còn lại</th>
-              <th>Hết hạn</th>
-              <th>Trạng thái</th>
-            </tr>
-          </thead>
-          <tbody>
-            {allocationResult.allocation?.map((pallet) => (
-              <tr key={pallet.id}>
-                <td>
-                  <span className="pallet-code">{pallet.palletCode}</span>
-                </td>
-                <td>{pallet.location}</td>
-                <td>
-                  {pallet.availableQuantity} {selectedItem?.unit}
-                </td>
-                <td className="allocated-quantity">
-                  {pallet.allocatedQuantity} {selectedItem?.unit}
-                </td>
-                <td>
-                  {pallet.remainingAfterAllocation} {selectedItem?.unit}
-                </td>
-                <td className={`expiry-cell ${pallet.daysUntilExpiry <= 7 ? "warning" : ""}`}>
-                  {pallet.daysUntilExpiry} ngày
-                </td>
-                <td>
-                  <div className="status-badges">
-                    {pallet.isOpened && <span className="badge badge-warning">Đã mở</span>}
-                    {pallet.daysUntilExpiry <= 7 && <span className="badge badge-danger">Gần hết hạn</span>}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="allocation-actions">
-        <button className="btn btn-secondary" onClick={() => setShowAllocationModal(false)}>
-          Hủy
-        </button>
-        <button className="btn btn-primary" onClick={confirmAllocation}>
-          Xác nhận phân bổ
-        </button>
-      </div>
-    </div>
-  )
+  const updateOrderItem = (id, updatedValues) => {
+    setSelectedproduct((prevItems) =>
+      prevItems.map((item) =>
+        item.id === id ? { ...item, ...updatedValues } : item
+      )
+    );
+  };
 
   return (
     <div className="tao-don-xuat">
-      <div className="section-header">
-        <div>
-          <h2 className="section-title">Tạo đơn xuất</h2>
-          <p className="section-subtitle">Tạo đơn xuất hàng với phân bổ pallet tự động</p>
-        </div>
-        <div className="header-actions">
-          <button className="btn btn-primary" onClick={saveOrder}>
-            <Save size={16} />
-            Lưu đơn hàng
-          </button>
-        </div>
-      </div>
-
+      <ToastContainer position="top-right" autoClose={2000} />
       {/* Order Info */}
       <div className="order-info card">
         <div className="card-header">
@@ -351,35 +144,69 @@ const TaoDonXuat = () => {
         <div className="card-body">
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Cửa hàng *</label>
-              <select className="form-input" value={selectedStore} onChange={(e) => setSelectedStore(e.target.value)}>
-                <option value="">Chọn cửa hàng</option>
-                {stores.map((store) => (
-                  <option key={store.id} value={store.id}>
-                    {store.name} - {store.area}
-                  </option>
-                ))}
-              </select>
+              <label className="form-label">Mã đơn *</label>
+              <input
+                type="text"
+                className={`form-input ${errors.ma_don ? "error" : ""}`}
+                name="ma_don"
+                value={formOrder.ma_don}
+                onChange={(e) => setFormOrders({ ...formOrder, ma_don: e.target.value })}
+                required
+              />
+              {errors.ma_don && <span className="error-text">{errors.ma_don}</span>}
             </div>
             <div className="form-group">
-              <label className="form-label">Ngày xuất</label>
+              <label className="form-label">Cửa hàng *</label>
+              <select
+                  name="cua_hang"
+                  className={`form-input ${errors.cua_hang ? "error" : ""}`}
+                  value={formOrder.cua_hang}
+                  onChange={(e) => setFormOrders({ ...formOrder, cua_hang: e.target.value })}
+                  required
+                >
+                  <option value="">-- Chọn cửa hàng --</option>
+                  {cuaHang.map((ch) => (
+                    <option key={ch.id} value={ch.id}>{ch.ma_cua_hang} - {ch.dia_chi_chi_tiet}</option>
+                  ))}
+              </select>
+              {errors.cua_hang && <span className="error-text">{errors.cua_hang}</span>}
+            </div>
+            <div className="form-group">
+              <label className="form-label">Ngày giao *</label>
               <input
                 type="date"
-                className="form-input"
-                value={orderDate}
-                onChange={(e) => setOrderDate(e.target.value)}
+                className={`form-input ${errors.ngay_giao ? "error" : ""}`}
+                name="ngay_giao"
+                value={formOrder.ngay_giao?.slice(0, 10) || ""}
+                onChange={(e) => setFormOrders({ ...formOrder, ngay_giao: e.target.value })}
+                required
               />
+              {errors.ngay_giao && <span className="error-text">{errors.ngay_giao}</span>}
+            </div>
+            <div className="form-group">
+              <label className="form-label">Người tạo</label>
+              <input
+                type="text"
+                className={`form-input ${errors.nguoi_tao ? "error" : ""}`}
+                name="nguoi_tao"
+                value={formOrder.nguoi_tao}
+                onChange={(e) => setFormOrders({ ...formOrder, nguoi_tao: e.target.value })}
+              />
+              {errors.nguoi_tao && <span className="error-text">{errors.nguoi_tao}</span>}
             </div>
           </div>
+
           <div className="form-group">
             <label className="form-label">Ghi chú</label>
             <textarea
-              className="form-input"
+              className={`form-input ${errors.ghi_chu ? "error" : ""}`}
               rows="2"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              name="ghi_chu"
+              value={formOrder.ghi_chu}
+              onChange={(e) => setFormOrders({ ...formOrder, ghi_chu: e.target.value })}
               placeholder="Nhập ghi chú cho đơn hàng..."
             />
+            {errors.ghi_chu && <span className="error-text">{errors.ghi_chu}</span>}
           </div>
         </div>
       </div>
@@ -398,85 +225,53 @@ const TaoDonXuat = () => {
             <table className="table">
               <thead>
                 <tr>
-                  <th style={{ width: "150px" }}>Mã SP</th>
-                  <th style={{ width: "200px" }}>Tên sản phẩm</th>
-                  <th style={{ width: "100px" }}>Số lượng</th>
-                  <th style={{ width: "80px" }}>Đơn vị</th>
-                  <th style={{ width: "150px" }}>Phân bổ</th>
-                  <th style={{ width: "200px" }}>Ghi chú</th>
-                  <th style={{ width: "100px" }}>Thao tác</th>
+                  <th style={{ width: "245px" }}>Sản phẩm</th>
+                  <th style={{ width: "245px" }}>Số lượng</th>
+                  <th style={{ width: "245px" }}>Danh sách pallet</th>
+                  <th style={{ width: "245px" }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {orderItems.map((item) => (
+                {selectedProducts.map((item) => (
                   <tr key={item.id}>
-                    <td>
-                      <select
-                        className="table-input"
-                        value={item.productCode}
-                        onChange={(e) => updateOrderItem(item.id, "productCode", e.target.value)}
+                    <td>      
+                      <select                                            
+                        name="san_pham"
+                        className={`table-input ${errors.san_pham ? "error" : ""}`}
+                        value={item.san_pham}
+                        onChange={(e) => updateOrderItem(item.id, { san_pham: e.target.value })}
+                        required
                       >
-                        <option value="">Chọn SP</option>
-                        {products.map((product) => (
-                          <option key={product.id} value={product.code}>
-                            {product.code}
-                          </option>
+                        <option value="">-- Chọn sản phẩm --</option>
+                        {products.map((sp) => (
+                          <option key={sp.id} value={sp.id}>{sp.ma_san_pham} - {sp.ten_san_pham}</option>
                         ))}
-                      </select>
+                    </select>
+                    {errors.san_pham && <span className="error-text">{errors.san_pham}</span>}
                     </td>
                     <td>
                       <input
                         type="text"
-                        className="table-input"
-                        value={item.productName}
-                        readOnly
-                        placeholder="Tên sản phẩm"
+                        className={`table-input ${errors.so_luong ? "error" : ""}`}
+                        name="so_luong"
+                        value={item.so_luong}
+                        onChange={(e) => updateOrderItem(item.id, { so_luong: e.target.value })}
+                        required
                       />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        className="table-input"
-                        value={item.quantity}
-                        onChange={(e) => updateOrderItem(item.id, "quantity", e.target.value)}
-                        placeholder="0"
-                      />
-                    </td>
-                    <td>
-                      <input type="text" className="table-input" value={item.unit} readOnly />
-                    </td>
-                    <td>
-                      <div className="allocation-cell">
-                        <button
-                          className="btn btn-sm btn-info"
-                          onClick={() => handleAutoAllocate(item)}
-                          disabled={!item.productCode || !item.quantity}
-                        >
-                          <Calculator size={12} />
-                          Phân bổ
-                        </button>
-                        {item.allocation && (
-                          <div className="allocation-status">
-                            {item.allocation.isFullyAllocated ? (
-                              <span className="status-success">✓ Đủ hàng</span>
-                            ) : (
-                              <span className="status-warning">
-                                ⚠ Thiếu {item.allocation.shortfall} {item.unit}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                      {errors.so_luong && <span className="error-text">{errors.so_luong}</span>}
                     </td>
                     <td>
                       <input
                         type="text"
-                        className="table-input"
-                        value={item.notes}
-                        onChange={(e) => updateOrderItem(item.id, "notes", e.target.value)}
-                        placeholder="Ghi chú"
+                        className={`table-input ${errors.pallet_assignments ? "error" : ""}`}
+                        name="so_luong"
+                        value={item.pallet_assignments}
+                        onChange={(e) => updateOrderItem(item.id, { pallet_assignments: e.target.value })}
+                        required
                       />
+                      {errors.pallet_assignments && <span className="error-text">{errors.pallet_assignments}</span>}
                     </td>
+
                     <td>
                       <button className="btn-action delete" onClick={() => removeOrderItem(item.id)} title="Xóa">
                         <Trash2 size={14} />
@@ -484,7 +279,7 @@ const TaoDonXuat = () => {
                     </td>
                   </tr>
                 ))}
-                {orderItems.length === 0 && (
+                {selectedProducts.length === 0 && (
                   <tr>
                     <td colSpan="7" className="empty-row">
                       <div className="empty-state">
@@ -497,28 +292,16 @@ const TaoDonXuat = () => {
               </tbody>
             </table>
           </div>
-
-          {orderItems.length > 0 && (
-            <div className="order-summary">
-              <div className="summary-row">
-                <span className="label">Tổng số lượng:</span>
-                <span className="value">{calculateTotalQuantity()} kg</span>
-              </div>
-              <div className="summary-row">
-                <span className="label">Số sản phẩm:</span>
-                <span className="value">{orderItems.length} loại</span>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Allocation Modal */}
-      <Modal isOpen={showAllocationModal} onClose={() => setShowAllocationModal(false)} title="Phân bổ pallet tự động">
-        <AllocationModal />
-      </Modal>
+      <button className="btn btn-primary" onClick={handleSubmitOrder}>
+        XUẤT ĐƠN
+      </button>
     </div>
-  )
+
+  );
+
 }
 
 export default TaoDonXuat

@@ -9,7 +9,7 @@ const Header = () => {
           <Menu size={20} />
         </button>
         <div className="logo">
-        <img src= "/logoclever.png" alt="Logo" className="logo-icon" />
+        <img src= "/logoklever.png" alt="Logo" className="logo-icon" />
           {/* <span className="logo-text">THADOSOFT</span> */}
           
         </div>

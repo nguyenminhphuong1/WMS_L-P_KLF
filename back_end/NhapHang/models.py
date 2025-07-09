@@ -7,6 +7,7 @@
 # Feel free to rename the models, but don't rename db_table values or field names.
 from django.db import models
 from QuanLyKho.models import NhaCungCap, ViTriKho, SanPham
+from django.core.exceptions import ValidationError
 
 class CaiDatHeThong(models.Model):
     khoa_cai_dat = models.CharField(unique=True, max_length=100)
@@ -39,7 +40,7 @@ class LogKiemTraGiaoHang(models.Model):
         db_table = 'log_kiem_tra_giao_hang'
 
 class Pallets(models.Model):
-    ma_pallet = models.CharField(unique=True, max_length=20)
+    ma_pallet = models.CharField(unique=True, max_length=50)
     san_pham = models.ForeignKey(SanPham, models.PROTECT)
     nha_cung_cap = models.ForeignKey(NhaCungCap, models.CASCADE, null=True, blank=True)
     so_thung_ban_dau = models.IntegerField()
@@ -62,5 +63,61 @@ class Pallets(models.Model):
 
     def __str__(self):
         return self.ma_pallet
+    
+    def export_quantity(self, so_luong, don_xuat=None, nguoi_xuat=None):
+        """Xuất số lượng từ pallet"""
+        if so_luong > self.so_thung_con_lai:
+            raise ValueError(f"Không thể xuất {so_luong} thùng vì chỉ còn {self.so_thung_con_lai}.")
+
+        # Cập nhật số lượng
+        self.so_thung_con_lai -= so_luong
+        
+        # Cập nhật trạng thái
+        if self.so_thung_con_lai == 0:
+            self.trang_thai = 'Trống'
+        elif self.trang_thai == 'Mới':
+            self.trang_thai = 'Đã_mở'
+        
+        self.save()
+        
+    def import_quantity(self, so_luong, don_xuat=None, nguoi_xuat=None):
+        """Xuất số lượng từ pallet"""
+        
+        # Cập nhật số lượng
+        self.so_thung_con_lai += so_luong
+        
+        if self.trang_thai == 'Trống':
+            self.trang_thai = 'Đã_mở'
+        self.save()
+
+    def move_to_position(self, vi_tri_moi, nguoi_thuc_hien=None):
+        """Di chuyển pallet đến vị trí mới"""
+        vi_tri_cu = self.vi_tri_kho
+        
+        # Kiểm tra vị trí mới có sẵn không
+        if vi_tri_moi and not vi_tri_moi.is_available():
+            raise ValidationError(f"Vị trí {vi_tri_moi.ma_vi_tri} không khả dụng")
+        
+        # Kiểm tra có thể lưu trữ không
+        if vi_tri_moi:
+            can_store, reason = vi_tri_moi.can_store_pallet(self)
+            if not can_store:
+                raise ValidationError(reason)
+        
+        # Cập nhật vị trí cũ
+        if vi_tri_cu:
+            vi_tri_cu.pallet = None
+            vi_tri_cu.trang_thai = 'Trống'
+            vi_tri_cu.save()
+        
+        # Cập nhật vị trí mới
+        if vi_tri_moi:
+            vi_tri_moi.pallet = self
+            vi_tri_moi.trang_thai = 'Có_hàng'
+            vi_tri_moi.save()
+        
+        # Cập nhật pallet
+        self.vi_tri_kho = vi_tri_moi
+        self.save()
 
 

@@ -74,6 +74,7 @@ const XuatHang = () => {
   }
 
   const handleViewDetail = (order) => {
+    console.log("Order được chọn:", order)
     setSelectedOrder(order)
     setShowDetailModal(true)
   }
@@ -193,11 +194,9 @@ const XuatHang = () => {
                 <tr>
                   <th>Mã đơn xuất</th>
                   <th>Cửa hàng</th>
-                  <th>Ngày tạo</th>
                   <th>Ngày giao</th>
                   <th>Trạng thái</th>
                   <th>Người tạo</th>
-                  <th>Ghi chú</th>
                   <th>Thao tác</th>
                 </tr>
               </thead>
@@ -211,15 +210,12 @@ const XuatHang = () => {
                     </td>
                     <td>
                       <div className="store-info">
-                        <span className="store-name">{order.cua_hang?.ten}</span>
-                        <span className="store-area">{order.cua_hang?.khu_vuc}</span>
+                        <span className="store-name">{order.ten_cua_hang}</span>
                       </div>
                     </td>
-                    <td>{order.ngay_tao ? new Date(order.ngay_tao).toLocaleDateString("vi-VN") : ""}</td>
                     <td>{order.ngay_giao ? new Date(order.ngay_giao).toLocaleDateString("vi-VN") : ""}</td>
                     <td>{getStatusBadge(order.trang_thai)}</td>
                     <td>{order.nguoi_tao}</td>
-                    <td>{order.ghi_chu}</td>
                     <td>
                       <div className="action-buttons">
                         <button
@@ -260,8 +256,7 @@ const XuatHang = () => {
       <Modal isOpen={showDetailModal} onClose={() => setShowDetailModal(false)} title="Chi tiết đơn xuất">
         {selectedOrder && (
           <ChiTietDonXuat
-            order={selectedOrder}
-            inventory={inventory}
+            donXuatId={selectedOrder.id}
             onClose={() => setShowDetailModal(false)}
           />
         )}

@@ -65,6 +65,8 @@ class DonXuatViewSet(viewsets.ModelViewSet):
 class ChiTietDonViewSet(viewsets.ModelViewSet):
     queryset = ChiTietDon.objects.all()
     serializer_class = ChiTietDonSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['don_xuat']
 
     @action(detail=False, methods=['get'], url_path='loc_don')
     def loc_don(self, request):

@@ -1,9 +1,16 @@
 import DashboardWidgets from "./DashboardWidgets"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
+import { PieChart, Pie, Tooltip, Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  ResponsiveContainer, 
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  LineChart, Line, Legend,
+  Radar, } from "recharts"
 import { TrendingUp, Package, Users, ShoppingCart } from "lucide-react"
 import "./Dashboard.css"
+import { useState, useEffect } from "react"
 
 const Dashboard = () => {
+  const [selectedChart, setSelectedChart] = useState("pie");
   // Mock data
   const statsData = [
     {
@@ -51,16 +58,31 @@ const Dashboard = () => {
     { name: "Nho", value: 90, color: "#8E24AA" },     
     { name: "Táo", value: 150, color: "#EF5350" }      
   ]
-  
-  
-  const barChartData = [
-    { month: "T1", quantity: 400 },
-    { month: "T2", quantity: 300 },
-    { month: "T3", quantity: 500 },
-    { month: "T4", quantity: 450 },
-    { month: "T5", quantity: 600 },
-    { month: "T6", quantity: 550 },
+
+  const chart01 = [
+    { name: "Cam", thùng: 20, color: "#20A9A3" },     
+    { name: "Xoài", thùng: 12, color: "#20A9A3" },    
+    { name: "Bơ", thùng: 10, color: "#20A9A3" },      
+    { name: "Nho", thùng: 9, color: "#20A9A3" },     
+    { name: "Táo", thùng: 15, color: "#20A9A3" } 
   ]
+
+  const chart02 = [
+    { name: "Cam", value: 10, color: "#FFA500" },     
+    { name: "Xoài", value: 6, color: "#FBC02D" },    
+    { name: "Bơ", value: 5, color: "#4CAF50" },      
+    { name: "Nho", value: 4, color: "#8E24AA" },     
+    { name: "Táo", value: 7, color: "#EF5350" } 
+  ]
+  
+  
+  const twoLineChart = [
+  { month: 'Jan', in: 2000, out: 2400 },
+  { month: 'Feb', in: 2500, out: 2450 },
+  { month: 'Mar', in: 2300, out: 3000 },
+  { month: 'Apr', in: 2500, out: 3200 },
+  { month: 'May', in: 3000, out: 3400 },
+];
 
   return (
     <div className="dashboard">
@@ -98,49 +120,89 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Charts */}
       <div className="charts-grid">
         <div className="chart-card card">
           <div className="card-header">
-            <h3 className="card-title">Hoa quả nhập nhiều nhất</h3>
-            <p className="card-subtitle">Thống kê theo loại sản phẩm</p>
+            <h2 className="order-code">Số lượng hàng tồn kho</h2>
+            <p className="card-subtitle">Cập nhật theo đơn vị</p>
+            <div className="detail-actions" style={{ marginTop: 10 }}>
+              <button className="btn btn-secondary" onClick={() => setSelectedChart("pie")}>Kilogram</button>
+              <button className="btn btn-secondary" onClick={() => setSelectedChart("bar")}>Thùng</button>
+              <button className="btn btn-secondary" onClick={() => setSelectedChart("line")}>Pallet</button>
+            </div>
           </div>
-          <div className="card-body">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}kg`}
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
+          <div className="card-body" style={{ width: "100%", height: 300 }}>
+            <ResponsiveContainer>
+              {selectedChart === "pie" && (
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    dataKey="value"
+                    label={({ name, value }) => `${name}: ${value}kg`}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={index} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              )}
+
+              {selectedChart === "bar" && (
+                <BarChart data={chart01}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis domain={[0, 25]}/>
+                  <Tooltip />
+                  <Bar dataKey="thùng">
+                    {chart01.map((entry, index) => (
+                      <Cell key={index} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              )}
+
+              {selectedChart === "line" && (
+                <RadarChart data={chart02}>
+                  <PolarGrid />
+                  <PolarAngleAxis dataKey="name" />
+                  <PolarRadiusAxis angle={30} domain={[0, 12]} />
+                  <Radar
+                    name="Tồn kho"
+                    dataKey="value"
+                    stroke="#8884d8"
+                    fill="#8884d8"
+                    fillOpacity={0.6}
+                  />
+                  <Tooltip />
+                </RadarChart>
+              )}
             </ResponsiveContainer>
           </div>
         </div>
+    
 
         <div className="chart-card card">
           <div className="card-header">
-            <h3 className="card-title">Xu hướng nhập hàng</h3>
-            <p className="card-subtitle">Số lượng nhập theo tháng (kg)</p>
+            <h2 className="order-code">Số lượng nhập/xuất theo tháng</h2>
+            <p className="card-subtitle">Số lượng theo biểu đồ thời gian</p>
           </div>
           <div className="card-body">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={barChartData}>
+              <LineChart data={twoLineChart}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
-                <YAxis />
+                <YAxis domain={[1500, 3500]}/>
                 <Tooltip />
-                <Bar dataKey="quantity" fill="var(--primary-color)" radius={[4, 4, 0, 0]} />
-              </BarChart>
+                <Legend />
+                <Line type="monotone" dataKey="in" stroke="red" name="Stock in" />
+                <Line type="monotone" dataKey="out" stroke="green" name="Stock out" />
+              </LineChart>
             </ResponsiveContainer>
           </div>
         </div>

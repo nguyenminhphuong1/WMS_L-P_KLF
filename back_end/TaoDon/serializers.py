@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import CuaHang, DonXuat, ChiTietDon, ChiTietViTriCuaHang
 from NhapHang.models import Pallets
+from django.db import transaction
 
 class ChiTietViTriCuaHangSerializer(serializers.ModelSerializer):
     class Meta:
@@ -64,9 +65,7 @@ class ChiTietDonSerializer(serializers.ModelSerializer):
             'so_luong_can', 
             'pallet_assignments',
             'da_xuat_xong',
-            'created_at'
         ]
-        read_only_fields = ['created_at']
     
     def validate_so_luong_can(self, value):
         if value <= 0:
@@ -87,5 +86,31 @@ class ChiTietDonSerializer(serializers.ModelSerializer):
             if 'pallet_id' not in item or 'location' not in item:
                 raise serializers.ValidationError("Thiếu 'pallet_id' hoặc 'location' trong một phần tử.")
         return value
+    
+    def create(self, validated_data):
+        with transaction.atomic():
+            instance = super().create(validated_data)
+            try:
+                instance.get_suitable_pallet(instance.so_luong_can)
+                instance.save()
+            except Exception as e:
+                raise serializers.ValidationError({"pallet": str(e)})
+        
+        return instance
+    
+    def update(self, instance , validated_data):
+        with transaction.atomic():
+            so_luong_cu = instance.so_luong_can
+            so_luong_moi = validated_data.get('so_luong_can', so_luong_cu)
+
+            instance = super().update(instance, validated_data)
+            try:
+                if so_luong_moi != so_luong_cu:
+                    instance.update_order_quantity(so_luong_moi, so_luong_cu)
+                    instance.save()
+            except Exception as e:
+                raise serializers.ValidationError({"pallet": str(e)})     
+        
+        return instance
     
 

@@ -3,6 +3,7 @@ import { AuthProvider } from "./context/AuthContext"
 import { NotificationProvider } from "./context/NotificationContext"
 import Header from "./components/common/Header"
 import Sidebar from "./components/common/Sidebar"
+import Footer from "./components/common/Footer"
 import Dashboard from "./pages/Dashboard/Dashboard"
 import NhapHang from "./pages/NhapHang/NhapHang"
 import TaoDon from "./pages/TaoDon/TaoDon"
@@ -39,6 +40,7 @@ function App() {
               </main>
             </div>
           </div>
+          <Footer/>
         </Router>
       </NotificationProvider>
     </AuthProvider>

@@ -49,9 +49,9 @@ class PalletsViewSet(viewsets.ModelViewSet):
         try:
             san_pham_list = SanPham.objects.values('id', 'ma_san_pham', 'ten_san_pham')
             nha_cung_cap_list = NhaCungCap.objects.values('id', 'ten_nha_cung_cap')
-            vi_tri_kho_list = ViTriKho.objects.values('id', 'ma_vi_tri')
+            vi_tri_kho_list = ViTriKho.objects.values('id', 'ma_vi_tri', 'trang_thai')
             ds_san_pham = [{"id": sp["id"], "label": sp["ten_san_pham"], "code": sp["ma_san_pham"]} for sp in san_pham_list]
-            ds_vi_tri_kho = [{"id": vt["id"], "label": vt["ma_vi_tri"]} for vt in vi_tri_kho_list]
+            ds_vi_tri_kho = [{"id": vt["id"], "label": vt["ma_vi_tri"], "status": vt["trang_thai"]} for vt in vi_tri_kho_list]
             ds_nha_cung_cap = [{"id": ncc["id"], "label": ncc["ten_nha_cung_cap"]} for ncc in nha_cung_cap_list]
 
             return Response({
@@ -109,6 +109,18 @@ class PalletsViewSet(viewsets.ModelViewSet):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    def change_position(self, request, pk=None):
+        try:
+            pallet = self.get_object()
+            nguoi_thuc_hien = request.user
+            vi_tri_moi = request.data.get["vi_tri_moi"]
+            if not vi_tri_moi:
+                return Response({"detail": "Vị trí mới là bắt buộc."}, status=400)
+            pallet.move_to_position(vi_tri_moi=vi_tri_moi, nguoi_thuc_hien=nguoi_thuc_hien)
+            return Response({"message":f"Đã chuyển pallet {pallet.ma_pallet} sang vị trí {vi_tri_moi.ma_vi_tri}."}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     
     

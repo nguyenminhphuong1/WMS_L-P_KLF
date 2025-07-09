@@ -1,4 +1,6 @@
 from django.db import models
+from django.core.exceptions import ValidationError
+from datetime import timezone
 
 
 # Create your models here.
@@ -39,6 +41,14 @@ class ViTriKho(models.Model):
     ], default='Pallet')
     tai_trong_max = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     chieu_cao_max = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
+    pallet = models.ForeignKey(
+        'NhapHang.Pallets',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='vi_tri_set',
+        help_text="Pallet đang được lưu trữ"
+    )
     trang_thai = models.CharField(max_length=7,choices=[
         ('Trống', 'Trống'),
         ('Có_hàng', 'Có hàng'),
@@ -55,6 +65,72 @@ class ViTriKho(models.Model):
     class Meta:
         db_table = 'vi_tri_kho'
         unique_together = (('hang', 'cot'),)
+
+    def __str__(self):
+        return f"{self.ma_vi_tri} ({self.trang_thai})"
+
+    def is_available(self):
+        """Kiểm tra vị trí có sẵn để lưu trữ không"""
+        return (self.trang_thai == 'Trống' and 
+                self.khu_vuc.trang_thai == 'Hoạt_động' and
+                not self.pallet)
+
+    def assign_pallet(self, pallet, user=None):
+        
+        # Cập nhật vị trí
+        self.pallet = pallet
+        self.trang_thai = 'Có_hàng'
+        self.save()
+        
+        # Cập nhật pallet
+        pallet.vi_tri_kho = self
+        pallet.save()
+
+    def remove_pallet(self, user=None, reason=""):
+        """Xóa pallet khỏi vị trí"""
+        
+        pallet = self.pallet
+
+        self.pallet = None
+        self.trang_thai = 'Trống'
+        self.save()
+
+    def set_maintenance(self, reason="", user=None):
+        """Đặt vị trí vào trạng thái bảo trì"""
+        if self.pallet:
+            raise ValidationError("Không thể bảo trì vị trí có hàng")
+        
+        self.trang_thai = 'Bảo_trì'
+        self.ghi_chu = f"Bảo trì: {reason}"
+        self.save()
+
+    def get_distance_to_exit(self):
+        """Tính khoảng cách đến cửa ra gần nhất"""
+        # Giả sử cửa ra ở góc (0, 0)
+        return abs(self.hang - 1) + abs(self.cot - 1)
+    
+    def get_pickup_priority(self):
+        """Tính độ ưu tiên khi lấy hàng (càng nhỏ càng ưu tiên)"""
+        priority = 0
+        
+        # Ưu tiên vị trí gần cửa ra
+        if self.gan_cua_ra:
+            priority -= 10
+        
+        # Ưu tiên FIFO
+        if self.uu_tien_fifo and self.pallet:
+            # Hàng cũ hơn có priority thấp hơn
+            days_old = (timezone.now().date() - self.pallet.ngay_san_xuat).days
+            priority -= days_old * 0.1
+
+        if self.pallet:
+            is_priority = self.pallet.tinh_trang_hang_set.filter(trang_thai="Ưu_tiên").exists()
+        
+        # Khoảng cách đến cửa ra
+        priority += self.get_distance_to_exit()
+        
+        return priority
+        
 
 class BaoTri(models.Model):
     ma_bao_tri = models.CharField(unique=True, max_length=20)
@@ -150,6 +226,9 @@ class SanPham(models.Model):
     class Meta:
         db_table = 'san_pham'
 
+    def __str__(self):
+        return f"{self.ma_san_pham} ({self.ten_san_pham})"
+
 class NhaCungCap(models.Model):
     ma_nha_cung_cap = models.CharField(unique=True, max_length=20)
     ten_nha_cung_cap = models.CharField(max_length=200)
@@ -174,8 +253,11 @@ class NhaCungCap(models.Model):
     class Meta:
         db_table = 'nha_cung_cap'
 
+    def __str__(self):
+        return f"{self.ma_nha_cung_cap} ({self.ten_nha_cung_cap})"
+
 class TinhTrangHang(models.Model):
-    pallet = models.ForeignKey('NhapHang.Pallets', models.PROTECT)
+    pallet = models.ForeignKey('NhapHang.Pallets', models.PROTECT, related_name='tinh_trang_hang_set')
     loai_tinh_trang = models.CharField(max_length=15, choices=[
         ('Bình_thường', 'Bình thường'),
         ('Sắp_hết_hạn', 'Sắp hết hạn'),

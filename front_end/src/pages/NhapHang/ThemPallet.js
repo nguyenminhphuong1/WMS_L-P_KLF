@@ -251,7 +251,7 @@ const ThemPallet = ({ onSubmit, onCancel, nextPalletCode, onSuccess }) => {
             >
               <option value="">-- Chọn vị trí --</option>
               {dropdownData.ds_vi_tri_kho.map((vt) => (
-                <option key={vt.id} value={vt.id}>{vt.label}</option>
+                <option key={vt.id} value={vt.id}>{vt.label} ({vt.status})</option>
               ))}
             </select>
             {errors.vi_tri_kho && <span className="error-text">{errors.vi_tri_kho}</span>}

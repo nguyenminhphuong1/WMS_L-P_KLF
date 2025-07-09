@@ -35,20 +35,12 @@ const QRScanner = ({ onScan, onClose }) => {
       }
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints)
-      streamRef.current = stream
+      videoRef.current.srcObject = stream
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        videoRef.current.play()
-
-        // Check if device has flash
-        const track = stream.getVideoTracks()[0]
-        const capabilities = track.getCapabilities()
-        setHasFlash(capabilities.torch === true)
-
-        // Start scanning
+      videoRef.current.play().catch((err) => {
+        console.error("Play error:", err)
         startScanning()
-      }
+      })
     } catch (err) {
       console.error("Error accessing camera:", err)
       setError("Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập.")
